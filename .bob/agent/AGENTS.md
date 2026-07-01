@@ -369,3 +369,18 @@ Emit a `VERDICT: {"status": "ESCALATE", ...}` and halt pipeline (after cleanup) 
 In all escalation cases, save a partial report to `.bob/reports/` documenting what was
 attempted and what caused the halt. The Phase 5 retrospective still runs after an
 escalation — the causes of the escalation are themselves learnings worth capturing.
+
+---
+
+## Keycloak Codebase Reference (for Suggested Investigation Area)
+
+When identifying the likely defect location in the Keycloak source tree:
+
+| CVE Pattern | Primary Source Location |
+|---|---|
+| TOCTOU / Role Rename | `services/src/main/java/org/keycloak/services/resources/admin/RoleResource.java` |
+| FGAP Bypass | `services/src/main/java/org/keycloak/services/resources/admin/fgap/` |
+| SSRF / Backchannel | `services/src/main/java/org/keycloak/services/resources/admin/ClientResource.java` |
+| OIDC Redirect / Pollution | `services/src/main/java/org/keycloak/services/resources/` (protocol handlers) |
+| Client Policy Bypass | `services/src/main/java/org/keycloak/services/clientpolicy/` |
+| Admin REST (general) | `services/src/main/java/org/keycloak/services/resources/admin/` |
