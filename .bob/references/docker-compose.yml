@@ -1,0 +1,70 @@
+# Bob-Sentry Keycloak Sandbox Template
+#
+# USAGE INSTRUCTIONS FOR AGENT MODE:
+#   1. Resolve {{KEYCLOAK_VERSION}} using this priority order:
+#      a. Explicit version named in the SV/CVE report (e.g. "26.0.5")
+#      b. Version current at the issue filing date (June 2026 issues → "26.1")
+#      c. "latest" if neither can be determined
+#   2. Copy this file to /tmp/keycloak-triage/docker-compose.yml
+#      substituting the resolved version for {{KEYCLOAK_VERSION}}
+#   3. Uncomment any SPI flags relevant to the CVE being triaged (see below)
+#   4. Run: docker compose -f /tmp/keycloak-triage/docker-compose.yml up -d
+#   5. Poll readiness: docker logs keycloak 2>&1 | grep "Listening on:"
+#      NOTE: Keycloak 26+ emits "Listening on:" not "Admin console listening"
+#   6. After triage: docker compose -f /tmp/keycloak-triage/docker-compose.yml down -v
+#
+# NETWORKING NOTE (macOS + Podman/Docker Desktop):
+#   From inside the container, the macOS host is reachable at host.containers.internal
+#   (Podman) or host.docker.internal (Docker Desktop), NOT at 127.0.0.1.
+#   Any mock server URL in client attributes must use host.containers.internal.
+#   The SSRF attack payload itself uses 127.0.0.1 (the container's own loopback)
+#   to demonstrate that Keycloak makes the outbound request without host validation.
+#
+# SECURITY: Port 8080 is bound to 127.0.0.1 only. Never expose to 0.0.0.0.
+
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:{{KEYCLOAK_VERSION}}
+    container_name: keycloak
+    command:
+      - start-dev
+      # ── CIBA backchannel triage (CVE pattern: SSRF via notification endpoint) ──
+      # Required when triaging CIBA ping/push mode vulnerabilities.
+      # SPI name:    ciba-auth-channel        (AuthenticationChannelSpi.getName())
+      # Provider ID: ciba-http-auth-channel   (HttpAuthenticationChannelProviderFactory.PROVIDER_ID)
+      # Config key:  httpAuthenticationChannelUri
+      # Mock server contract: POST to /channel must return HTTP 201 Created (not 200)
+      # Uncomment the line below for CIBA triage:
+      # - --spi-ciba-auth-channel-ciba-http-auth-channel-http-authentication-channel-uri=http://host.containers.internal:9999/channel
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_HTTP_PORT: "8080"
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT_HTTPS: "false"
+      KC_LOG_LEVEL: INFO
+    ports:
+      - "127.0.0.1:8080:8080"
+    networks:
+      - keycloak-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/health/ready || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  # Uncomment this service if the SV involves an external Identity Provider (Rule 2).
+  # mock-idp:
+  #   image: wiremock/wiremock:latest
+  #   container_name: mock-idp
+  #   ports:
+  #     - "127.0.0.1:9090:8080"
+  #   volumes:
+  #     - /tmp/keycloak-triage/wiremock:/home/wiremock
+  #   networks:
+  #     - keycloak-net
+
+networks:
+  keycloak-net:
+    driver: bridge
