@@ -1,12 +1,20 @@
 # Command: `/triage`
 
-**Usage:** `/triage <github-issue-number>`
-**Example:** `/triage 49427`
+**Usage:** `/triage <github-issue-number> [searchDup]`
+**Examples:**
+- `/triage 49427` — fetch issue and begin triage immediately
+- `/triage 49427 searchDup` — check for duplicate issues first; halt if duplicates found
+
 **Target repository:** `keycloak/keycloak` (hardcoded)
 
 Kicks off the full Bob-Sentry **5-phase** triage pipeline against a Keycloak GitHub issue.
 The pipeline runs from raw issue ingestion through to a local Markdown triage report,
 and closes with a mandatory retrospective that feeds learnings back into the agent files.
+
+The optional `searchDup` flag inserts a **pre-triage duplicate search** before any CVE
+analysis, sandbox provisioning, or script generation. If candidate duplicates are found,
+the pipeline halts and reports them — it does not proceed until the engineer re-issues
+the command without `searchDup`.
 
 ---
 
@@ -28,6 +36,18 @@ The only permitted GitHub operation is reading issue content (Step 1 below).
 ---
 
 ## Pipeline Steps
+
+### Step 0 — Duplicate Search *(only when `searchDup` is present)*
+
+Load `@.bob/agent/DUPLICATE_SEARCH.md` and execute the full procedure defined there.
+
+- **`searchDup` present:** Run the duplicate search. If candidate duplicates (score ≥ 3)
+  are found, output the duplicate report and **stop here**. Do not proceed to Step 1.
+  If no duplicates are found, output the "NO DUPLICATES FOUND" banner and continue
+  automatically to Step 1.
+- **`searchDup` absent:** Skip Step 0 entirely and proceed directly to Step 1.
+
+---
 
 ### Step 1 — Fetch the GitHub Issue (READ ONLY)
 
@@ -103,13 +123,21 @@ Switch to Code mode. Load `@.bob/code/AGENTS.md`.
 Using the triage plan from Step 3:
 
 1. **Resolve the Keycloak image version** from the plan's Stage 1 output
-2. **Generate `setup_realm.py` (Script A):**
+2. **Determine the script destination** from the CVE Analyzer JSON `report_folder` and
+   `report_path` fields:
+   ```
+   .bob/reports/<report_folder>/<issue-number>/
+   ```
+3. **Check for prior triage artefacts** in that folder — read any existing
+   `setup_realm.py` and `exploit_test.py` as reference before writing new scripts
+   (see Prior Triage Reference Pass in `@.bob/code/AGENTS.md`).
+4. **Generate `setup_realm.py` (Script A)** — save to the destination folder:
    - Uses only payloads from `@.bob/references/admin-api-schemas.md` Section A
      (and Section C if FGAP is required)
-   - Must include the standard header from code/AGENTS.md
+   - Must include the standard header from code/AGENTS.md (with `Attack Class Folder:` line)
    - Must produce structured `[SETUP]` console output
    - Must exit `0` on success, `2` on failure
-3. **Generate `exploit_test.py` (Script B):**
+5. **Generate `exploit_test.py` (Script B)** — save to the destination folder:
    - Uses only payloads from `@.bob/references/admin-api-schemas.md` Section B
    - Must include the standard header from code/AGENTS.md
    - Must produce structured `[EXPLOIT]` and `[ASSERT]` console output
@@ -243,6 +271,7 @@ At the end of a successful pipeline run, display the following **in order**:
 ║  Bob-Sentry Triage Complete                              ║
 ╠══════════════════════════════════════════════════════════╣
 ║  Issue:    keycloak/keycloak#<number>                    ║
+║  Dup check: PASSED (none found) | SKIPPED                ║
 ║  Status:   CONFIRMED VULNERABLE | PATCH VERIFIED |       ║
 ║            ESCALATED | NOT REPRODUCIBLE                  ║
 ║  Report:   .bob/reports/triage-<number>-<date>.md        ║

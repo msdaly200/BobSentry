@@ -140,4 +140,4 @@ All triage runtime files (compose files, scripts, logs) MUST be written to
 - The user's home directory
 
 The `.bob/reports/` directory is the **only** location within the workspace where Bob may
-write files — and only for the final triage report Markdown.
+write files — and only for the final triage report Markdown and any scripts that reproduced a confirmed vulnerability (`setup_realm.py`, `exploit_test.py`). These MUST be copied from `/tmp/keycloak-triage/` into the report subfolder BEFORE the Rule 6 cleanup runs.
