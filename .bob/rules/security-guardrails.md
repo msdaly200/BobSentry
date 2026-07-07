@@ -3,6 +3,12 @@
 > These rules are **non-negotiable**. They apply to ALL Bob modes (Plan, Code, Agent,
 > security-sentry) during every stage of a triage session. Bob must load and acknowledge
 > these rules before executing any script or container operation.
+>
+> **Report Format:** All triage sessions MUST generate a professional HTML report using
+> the `create_html_artifact` Bob capability with the template at
+> `.bob/skills/cve-analyzer/html-report-template.html`. The HTML report must be saved to
+> `.bob/reports/<report_folder>/<issue-number>/triage-<issue-number>-<date>.html`.
+> Markdown reports are deprecated and should not be generated.
 
 ---
 
