@@ -1,0 +1,325 @@
+#!/usr/bin/env python3
+"""
+Bob-Sentry HTML Report Generator
+
+This script converts markdown triage reports into HTML format using the UI templates.
+It keeps the raw markdown reports in their original locations and generates HTML
+versions in the ui/generated/ directory.
+
+Usage:
+    python generate_html_reports.py [--issue ISSUE_NUMBER] [--all]
+    
+Examples:
+    # Generate HTML for a specific issue
+    python generate_html_reports.py --issue 50445
+    
+    # Generate HTML for all reports
+    python generate_html_reports.py --all
+    
+    # Generate HTML for the most recent report
+    python generate_html_reports.py
+"""
+
+import argparse
+import re
+import os
+from pathlib import Path
+from datetime import datetime
+import markdown
+from jinja2 import Template
+
+
+class ReportGenerator:
+    def __init__(self, base_dir=None):
+        """Initialize the report generator."""
+        if base_dir is None:
+            # Assume script is in .bob/reports/ui/
+            self.base_dir = Path(__file__).parent.parent
+        else:
+            self.base_dir = Path(base_dir)
+        
+        self.ui_dir = self.base_dir / "ui"
+        self.template_path = self.ui_dir / "templates" / "report-template.html"
+        self.output_dir = self.ui_dir / "generated"
+        
+        # Ensure output directory exists
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+    
+    def find_all_reports(self):
+        """Find all markdown triage reports in the reports directory."""
+        reports = []
+        
+        # Search all attack-class folders
+        for attack_dir in self.base_dir.iterdir():
+            if not attack_dir.is_dir() or attack_dir.name == "ui":
+                continue
+            
+            # Search issue folders within each attack class
+            for issue_dir in attack_dir.iterdir():
+                if not issue_dir.is_dir():
+                    continue
+                
+                # Find markdown reports
+                for md_file in issue_dir.glob("triage-*.md"):
+                    reports.append({
+                        "path": md_file,
+                        "attack_class": attack_dir.name,
+                        "issue_number": issue_dir.name,
+                        "filename": md_file.name
+                    })
+        
+        return reports
+    
+    def extract_metadata(self, content):
+        """Extract metadata from the markdown report header."""
+        metadata = {
+            "cve_id": "Unknown",
+            "title": "Triage Report",
+            "date": datetime.now().strftime("%Y-%m-%d"),
+            "verdict": "Unknown",
+            "verdict_class": "unknown",
+            "severity": "Unknown",
+            "severity_class": "unknown",
+            "issue_number": "Unknown"
+        }
+        
+        # Extract CVE ID
+        cve_match = re.search(r'\*\*CVE:\*\*\s+([^\s]+)', content)
+        if cve_match:
+            metadata["cve_id"] = cve_match.group(1)
+        
+        # Extract title
+        title_match = re.search(r'\*\*Title:\*\*\s+(.+)', content)
+        if title_match:
+            metadata["title"] = title_match.group(1).strip()
+        
+        # Extract date
+        date_match = re.search(r'\*\*Date:\*\*\s+(\d{4}-\d{2}-\d{2})', content)
+        if date_match:
+            metadata["date"] = date_match.group(1)
+        
+        # Extract verdict
+        verdict_match = re.search(r'\*\*Verdict:\*\*\s+(.+)', content)
+        if verdict_match:
+            verdict_text = verdict_match.group(1).strip()
+            metadata["verdict"] = verdict_text
+            
+            # Determine verdict class for styling
+            if "CONFIRMED" in verdict_text.upper():
+                metadata["verdict_class"] = "confirmed"
+            elif "NOT VULNERABLE" in verdict_text.upper():
+                metadata["verdict_class"] = "not-vulnerable"
+            elif "ESCALATE" in verdict_text.upper():
+                metadata["verdict_class"] = "escalate"
+        
+        # Extract severity
+        severity_match = re.search(r'\*\*Severity:\*\*\s+([^\n]+)', content)
+        if severity_match:
+            severity_text = severity_match.group(1).strip()
+            metadata["severity"] = severity_text
+            
+            # Determine severity class for styling
+            severity_lower = severity_text.lower()
+            if "blocker" in severity_lower or "critical" in severity_lower:
+                metadata["severity_class"] = "blocker"
+            elif "important" in severity_lower:
+                metadata["severity_class"] = "important"
+            elif "moderate" in severity_lower:
+                metadata["severity_class"] = "moderate"
+            elif "low" in severity_lower:
+                metadata["severity_class"] = "low"
+        
+        # Extract issue number from header
+        issue_match = re.search(r'#\s*Triage Report — Issue #(\d+)', content)
+        if issue_match:
+            metadata["issue_number"] = issue_match.group(1)
+        
+        return metadata
+    
+    def convert_markdown_to_html(self, md_content):
+        """Convert markdown content to HTML."""
+        # Configure markdown with extensions
+        md = markdown.Markdown(extensions=[
+            'extra',
+            'codehilite',
+            'tables',
+            'fenced_code',
+            'toc'
+        ])
+        
+        return md.convert(md_content)
+    
+    def generate_html(self, report_info):
+        """Generate HTML for a single report."""
+        # Read the markdown report
+        with open(report_info["path"], "r", encoding="utf-8") as f:
+            md_content = f.read()
+        
+        # Extract metadata
+        metadata = self.extract_metadata(md_content)
+        metadata["issue_number"] = report_info["issue_number"]
+        
+        # Convert markdown to HTML
+        html_content = self.convert_markdown_to_html(md_content)
+        
+        # Read the template
+        with open(self.template_path, "r", encoding="utf-8") as f:
+            template_content = f.read()
+        
+        # Create Jinja2 template
+        template = Template(template_content)
+        
+        # Calculate relative path to raw report
+        raw_report_path = f"../../{report_info['attack_class']}/{report_info['issue_number']}/{report_info['filename']}"
+        
+        # Render the template
+        html_output = template.render(
+            content=html_content,
+            raw_report_path=raw_report_path,
+            **metadata
+        )
+        
+        # Create output directory structure
+        output_subdir = self.output_dir / report_info["attack_class"] / report_info["issue_number"]
+        output_subdir.mkdir(parents=True, exist_ok=True)
+        
+        # Write HTML file
+        output_filename = report_info["filename"].replace(".md", ".html")
+        output_path = output_subdir / output_filename
+        
+        with open(output_path, "w", encoding="utf-8") as f:
+            f.write(html_output)
+        
+        return output_path
+    
+    def generate_index(self, reports):
+        """Generate an index.html listing all reports."""
+        # Group reports by attack class
+        by_attack_class = {}
+        for report in reports:
+            attack_class = report["attack_class"]
+            if attack_class not in by_attack_class:
+                by_attack_class[attack_class] = []
+            by_attack_class[attack_class].append(report)
+        
+        # Create index HTML
+        index_html = """<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bob-Sentry Triage Reports Index</title>
+    <link rel="stylesheet" href="assets/report-styles.css">
+</head>
+<body>
+    <div class="container">
+        <header class="report-header">
+            <h1>🛡️ Bob-Sentry Triage Reports</h1>
+            <p>Automated security vulnerability triage for Keycloak</p>
+        </header>
+        <main class="report-content">
+            <h2>Reports by Attack Class</h2>
+"""
+        
+        for attack_class in sorted(by_attack_class.keys()):
+            index_html += f"            <h3>{attack_class}</h3>\n"
+            index_html += "            <ul>\n"
+            
+            for report in sorted(by_attack_class[attack_class], 
+                               key=lambda r: r["issue_number"], 
+                               reverse=True):
+                html_filename = report["filename"].replace(".md", ".html")
+                html_path = f"{attack_class}/{report['issue_number']}/{html_filename}"
+                
+                index_html += f'                <li><a href="{html_path}">Issue #{report["issue_number"]} - {report["filename"]}</a></li>\n'
+            
+            index_html += "            </ul>\n"
+        
+        index_html += """        </main>
+        <footer class="report-footer">
+            <div class="footer-content">
+                <p>Generated by Bob-Sentry HTML Report Generator</p>
+                <p>Last updated: """ + datetime.now().strftime("%Y-%m-%d %H:%M:%S") + """</p>
+            </div>
+        </footer>
+    </div>
+</body>
+</html>
+"""
+        
+        # Write index file
+        index_path = self.output_dir / "index.html"
+        with open(index_path, "w", encoding="utf-8") as f:
+            f.write(index_html)
+        
+        return index_path
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Generate HTML reports from markdown triage reports"
+    )
+    parser.add_argument(
+        "--issue",
+        type=str,
+        help="Generate HTML for a specific issue number"
+    )
+    parser.add_argument(
+        "--all",
+        action="store_true",
+        help="Generate HTML for all reports"
+    )
+    parser.add_argument(
+        "--base-dir",
+        type=str,
+        help="Base reports directory (default: auto-detect)"
+    )
+    
+    args = parser.parse_args()
+    
+    # Initialize generator
+    generator = ReportGenerator(base_dir=args.base_dir)
+    
+    # Find reports
+    all_reports = generator.find_all_reports()
+    
+    if not all_reports:
+        print("No reports found.")
+        return
+    
+    # Filter reports based on arguments
+    if args.issue:
+        reports_to_generate = [r for r in all_reports if r["issue_number"] == args.issue]
+        if not reports_to_generate:
+            print(f"No reports found for issue #{args.issue}")
+            return
+    elif args.all:
+        reports_to_generate = all_reports
+    else:
+        # Generate only the most recent report
+        reports_to_generate = [max(all_reports, key=lambda r: r["path"].stat().st_mtime)]
+    
+    # Generate HTML for selected reports
+    print(f"Generating HTML for {len(reports_to_generate)} report(s)...")
+    
+    for report in reports_to_generate:
+        try:
+            output_path = generator.generate_html(report)
+            print(f"✓ Generated: {output_path}")
+        except Exception as e:
+            print(f"✗ Failed to generate {report['path']}: {e}")
+    
+    # Generate index
+    try:
+        index_path = generator.generate_index(all_reports)
+        print(f"✓ Generated index: {index_path}")
+    except Exception as e:
+        print(f"✗ Failed to generate index: {e}")
+    
+    print("\nDone!")
+
+
+if __name__ == "__main__":
+    main()
+
+# Made with Bob
