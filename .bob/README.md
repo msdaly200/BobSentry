@@ -1,6 +1,6 @@
 # Bob-Sentry — Security Triage System
 
-Bob-Sentry is a semi-autonomous security triage pipeline for Keycloak. It converts a raw GitHub issue number into a structured vulnerability verdict (confirmed / patch verified / escalated) with reproducible scripts, a sandbox execution log, and a Markdown report — all without touching GitHub.
+Bob-Sentry is a semi-autonomous security triage pipeline for Keycloak. It converts a raw GitHub issue number into a structured vulnerability verdict (confirmed / patch verified / escalated) with reproducible scripts, a sandbox execution log, a final severity assessment, and an HTML report — all without touching GitHub.
 
 ---
 
@@ -29,7 +29,7 @@ The command triggers a 6-step pipeline. Steps 3 and 4 are iterative — scripts 
 | 2 | Security Sentry | Runs the CVE Analyzer skill; produces a threat-assessment JSON matched against 5 trained CVE patterns |
 | 3 | Plan | Produces a 4-stage triage plan (component, sandbox config, execution strategy, verification signals); **waits for your approval** |
 | 4 | Code | Generates `setup_realm.py` and `exploit_test.py` tailored to the threat profile; **presents both scripts for review** before execution |
-| 5 | Agent | Spins up a Docker sandbox, runs the scripts, captures logs, tears everything down, writes the report |
+| 5 | Agent | Spins up a Docker sandbox, runs the scripts, captures logs, assigns the final CVSS v3.1 severity, tears everything down, writes the HTML report |
 | 6 | Agent | Runs a retrospective, proposes targeted updates to the knowledge-base files; **waits for your approval** before touching anything |
 
 **Sandbox lifecycle:** A Docker Compose file is written to `/tmp/keycloak-triage/`, Keycloak boots (60-second timeout), both scripts run, and `docker compose down -v` plus `rm -rf /tmp/keycloak-triage/` execute unconditionally — even on failure. No container state persists between sessions.
@@ -45,9 +45,9 @@ All artefacts land under `.bob/reports/`, organised by attack class and issue nu
   <attack-class>/
     <issue-number>/
       setup_realm.py            ← Script A: provisions the sandbox realm
-      exploit_test.py           ← Script B: executes the exploit and asserts the result
-      triage-<number>-<date>.md ← the full triage report
-  metrics-summary.md            ← running productivity totals across all sessions
+      exploit_test.py             ← Script B: executes the exploit and asserts the result
+      triage-<number>-<date>.html ← the full triage report
+  metrics-summary.md              ← running productivity totals across all sessions
 ```
 
 **Attack-class folder names** (set by the CVE Analyzer):
@@ -61,7 +61,7 @@ All artefacts land under `.bob/reports/`, organised by attack class and issue nu
 | `policy-bypass-ROPC/` | Client policy bypass via ROPC grant |
 | `novel-pattern/` | Vulnerabilities that don't match a known class |
 
-The triage report includes: executive summary, threat profile, sandbox config, full execution logs, HTTP evidence, verdict JSON, a suggested investigation area in the Keycloak source tree, and a session-metrics table.
+The triage report includes: executive summary, threat profile, sandbox config, full execution logs, HTTP evidence, final severity label, CVSS v3.1 base score, CVSS v3.1 vector, verdict JSON, a suggested investigation area in the Keycloak source tree, and a session-metrics table.
 
 ---
 
@@ -74,7 +74,7 @@ The folder structure is deliberately cumulative. When a new issue arrives in the
 - The API schema reference ([`references/admin-api-schemas.md`](references/admin-api-schemas.md)) is updated when API surprises are found during execution — so subsequent scripts don't repeat the same wrong key names.
 - [`reports/metrics-summary.md`](reports/metrics-summary.md) accumulates timing data across all sessions.
 
-To re-triage a known issue (e.g. after a patch is applied), run `/triage <same-issue-number>` again. Bob will read the prior scripts as reference and produce a new dated report in the same subfolder.
+To re-triage a known issue (e.g. after a patch is applied), run `/triage <same-issue-number>` again. Bob will read the prior scripts as reference, assign severity during Step 5, and produce a new dated HTML report in the same subfolder.
 
 ---
 
@@ -89,8 +89,6 @@ To re-triage a known issue (e.g. after a patch is applied), run `/triage <same-i
 | [`references/keycloak-cve-history.md`](references/keycloak-cve-history.md) | 5 deep CVE training profiles + 20-class vulnerability matrix |
 | [`references/admin-api-schemas.md`](references/admin-api-schemas.md) | Authoritative Keycloak Admin REST API payloads used by generated scripts |
 | [`references/docker-compose.yml`](references/docker-compose.yml) | Sandbox Compose template (Keycloak + optional WireMock) |
-| [`agent/AGENTS.md`](agent/AGENTS.md) | Agent mode — sandbox execution, cleanup, report generation, retrospective |
+| [`agent/AGENTS.md`](agent/AGENTS.md) | Consolidated instructions for Plan mode, Code mode, and Agent mode |
 | [`agent/DUPLICATE_SEARCH.md`](agent/DUPLICATE_SEARCH.md) | Duplicate detection procedure used by `searchDup` flag |
-| [`plan/AGENTS.md`](plan/AGENTS.md) | Plan mode — component taxonomy, 4-stage plan structure |
-| [`code/AGENTS.md`](code/AGENTS.md) | Code mode — script generation rules, exit code contract, per-CVE guidance |
 | [`reports/`](reports/) | All triage output (reports, scripts, metrics) — the only workspace path Bob writes to |

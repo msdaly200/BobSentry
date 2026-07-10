@@ -1,3 +1,11 @@
+---
+name: init-triage
+description: '# Command: `/triage`'
+metadata:
+  user-invocable: true
+  disable-model-invocation: true
+---
+
 # Command: `/triage`
 
 **Usage:** `/triage <github-issue-number> [searchDup]`
