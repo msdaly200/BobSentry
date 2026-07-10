@@ -1,6 +1,6 @@
 # Bob-Sentry — Security Triage System
 
-Bob-Sentry is a semi-autonomous security triage pipeline for Keycloak. It converts a raw GitHub issue number into a structured vulnerability verdict (confirmed / patch verified / escalated) with reproducible scripts, a sandbox execution log, a final severity assessment, and an HTML report — all without touching GitHub.
+Bob-Sentry is a semi-autonomous security triage pipeline for Keycloak. It converts a raw GitHub issue number into a structured vulnerability verdict (confirmed / patch verified / escalated) with reproducible scripts, a sandbox execution log, a final severity assessment, and a Markdown report — all without touching GitHub.
 
 ---
 
@@ -29,7 +29,7 @@ The command triggers a 6-step pipeline. Steps 3 and 4 are iterative — scripts 
 | 2 | Security Sentry | Runs the CVE Analyzer skill; produces a threat-assessment JSON matched against 5 trained CVE patterns |
 | 3 | Plan | Produces a 4-stage triage plan (component, sandbox config, execution strategy, verification signals); **waits for your approval** |
 | 4 | Code | Generates `setup_realm.py` and `exploit_test.py` tailored to the threat profile; **presents both scripts for review** before execution |
-| 5 | Agent | Spins up a Docker sandbox, runs the scripts, captures logs, assigns the final CVSS v3.1 severity, tears everything down, writes the HTML report |
+| 5 | Agent | Spins up a Docker sandbox, runs the scripts, captures logs, assigns the final CVSS v3.1 severity, tears everything down, writes the Markdown report |
 | 6 | Agent | Runs a retrospective, proposes targeted updates to the knowledge-base files; **waits for your approval** before touching anything |
 
 **Sandbox lifecycle:** A Docker Compose file is written to `/tmp/keycloak-triage/`, Keycloak boots (60-second timeout), both scripts run, and `docker compose down -v` plus `rm -rf /tmp/keycloak-triage/` execute unconditionally — even on failure. No container state persists between sessions.
@@ -46,7 +46,7 @@ All artefacts land under `.bob/reports/`, organised by attack class and issue nu
     <issue-number>/
       setup_realm.py            ← Script A: provisions the sandbox realm
       exploit_test.py             ← Script B: executes the exploit and asserts the result
-      triage-<number>-<date>.html ← the full triage report
+      triage-<number>-<date>.md ← the full triage report
   metrics-summary.md              ← running productivity totals across all sessions
 ```
 
@@ -74,7 +74,7 @@ The folder structure is deliberately cumulative. When a new issue arrives in the
 - The API schema reference ([`references/admin-api-schemas.md`](references/admin-api-schemas.md)) is updated when API surprises are found during execution — so subsequent scripts don't repeat the same wrong key names.
 - [`reports/metrics-summary.md`](reports/metrics-summary.md) accumulates timing data across all sessions.
 
-To re-triage a known issue (e.g. after a patch is applied), run `/triage <same-issue-number>` again. Bob will read the prior scripts as reference, assign severity during Step 5, and produce a new dated HTML report in the same subfolder.
+To re-triage a known issue (e.g. after a patch is applied), run `/triage <same-issue-number>` again. Bob will read the prior scripts as reference, assign severity during Step 5, and produce a new dated Markdown report in the same subfolder.
 
 ---
 

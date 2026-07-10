@@ -100,7 +100,7 @@ Produce the threat assessment JSON:
 ```
 
 If `novel_pattern: true` AND `confidence: LOW` → halt pipeline, output `ESCALATE`,
-save a partial report to `.bob/reports/<report_folder>/<issue-number>/triage-<issue-number>-<date>-ESCALATED.html`.
+save a partial report to `.bob/reports/<report_folder>/<issue-number>/triage-<issue-number>-<date>-ESCALATED.md`.
 
 ---
 
@@ -173,10 +173,10 @@ Execute the full agent pipeline:
    - If evidence is inconclusive, default to `LOW` unless the grounded evidence supports a higher severity
 9. **Always run cleanup:** `docker compose down -v && rm -rf /tmp/keycloak-triage/`
 
-Produce the final triage report as an HTML artifact using `create_html_artifact` and the template at `@.bob/skills/cve-analyzer/html-report-template.html`.
+Produce the final triage report as a Markdown file.
 Save it at:
 ```
-.bob/reports/<report_folder>/<issue-number>/triage-<issue-number>-<YYYY-MM-DD>.html
+.bob/reports/<report_folder>/<issue-number>/triage-<issue-number>-<YYYY-MM-DD>.md
 ```
 
 The report must include the final severity label, CVSS v3.1 base score, and CVSS v3.1 vector.
@@ -184,7 +184,7 @@ The report must include the final severity label, CVSS v3.1 base score, and CVSS
 Once the file is written:
 
 1. Output the absolute file path to the console.
-2. Present the HTML report artifact in the chat for engineer review.
+2. **Read the file back and display its full contents inline** so the engineer can review the complete report without opening a separate file.
 3. Output the verdict JSON separately after the report for easy parsing.
 
 **Do not post, comment, push, or write to GitHub. The report is the final deliverable.**
@@ -257,11 +257,16 @@ edits are complete, confirm which files were updated.
 
 At the end of a successful pipeline run, display the following **in order**:
 
-**1. The complete triage report as an HTML artifact:**
+**1. The complete triage report (read from file and rendered inline):**
 
-- File: `.bob/reports/<report_folder>/<issue-number>/triage-<issue-number>-<date>.html`
-- Rendered from `@.bob/skills/cve-analyzer/html-report-template.html`
-- Includes the final severity label, CVSS v3.1 base score, and CVSS v3.1 vector
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ TRIAGE REPORT — keycloak/keycloak#<number>
+ .bob/reports/<report_folder>/<issue-number>/triage-<issue-number>-<date>.md
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+<full report contents rendered here>
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
 
 **2. The verdict JSON:**
 
@@ -287,7 +292,7 @@ At the end of a successful pipeline run, display the following **in order**:
 ║  Status:   CONFIRMED VULNERABLE | PATCH VERIFIED |       ║
 ║            ESCALATED | NOT REPRODUCIBLE                  ║
 ║  Report:   .bob/reports/<report_folder>/<issue-number>/  ║
-║            triage-<number>-<date>.html                   ║
+║            triage-<number>-<date>.md                   ║
 ║  Retro:    Retrospective presented in chat; updates      ║
 ║            require explicit engineer approval            ║
 ║  GitHub:   READ ONLY — no writes performed               ║
