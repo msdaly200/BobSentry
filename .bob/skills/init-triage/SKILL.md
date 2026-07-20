@@ -129,7 +129,7 @@ Using the threat assessment JSON from Step 2, produce the full triage plan:
 - Stage 3: Execution Strategy (control test + exploit test with expected HTTP codes)
 - Stage 4: Verification (confirmation signal + denial signal)
 
-Present the plan to the engineer. **Wait for confirmation before proceeding to Step 4.**
+Proceed directly to Step 4 without waiting for confirmation.
 
 ---
 
@@ -183,14 +183,6 @@ Execute the full agent pipeline:
 5. Secret scan Script B — halt and escalate if credential pattern found
 6. Run Script B — capture stdout/stderr to `result.log`
 7. Parse the `RESULT:` JSON line from `result.log`
-8. **Always run cleanup:** `docker compose down -v && rm -rf /tmp/keycloak-triage/`
-
-Produce the final triage report at:
-```
-.bob/reports/triage-<issue-number>-<YYYY-MM-DD>.md
-```
-
-Using the template in `@.bob/agent/AGENTS.md` (Phase 4 section).
 8. Assign severity exactly once using `CVSS v3.1`, based on the issue details and Step 5 execution evidence
    - Output a severity label: `LOW`, `MEDIUM`, `HIGH`, or `CRITICAL`
    - Output the numeric CVSS v3.1 base score
@@ -207,11 +199,18 @@ Save it at:
 
 The report must include the final severity label, CVSS v3.1 base score, and CVSS v3.1 vector.
 
-Once the file is written:
+Once the Markdown file is written, and **only if** the verdict is not `not-vulnerable` and
+the `<report_folder>` does not match the `CVE-*` pattern:
+
+1. Write `context.json` to the same session subfolder. Follow the schema and required fields
+   defined in `@.bob/agent/AGENTS.md` Phase 4 — Writing context.json.
+2. Append an entry to `.bob/reports/index.json` (create the file if absent) and update its
+   `"generated"` date. Follow the entry schema defined in `@.bob/agent/AGENTS.md` Phase 4 —
+   Updating index.json.
+
+Then display the results:
 
 1. Output the absolute file path to the console.
-2. **Read the file back and display its full contents inline** so the engineer can review
-   the complete report without opening a separate file.
 2. **Read the file back and display its full contents inline** so the engineer can review the complete report without opening a separate file.
 3. Output the verdict JSON separately after the report for easy parsing.
 

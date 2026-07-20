@@ -1,0 +1,45 @@
+{
+  "schema_version": "1.0",
+  "issue_number": "49915",
+  "project": {
+    "name": "keycloak",
+    "url": "https://github.com/keycloak/keycloak/issues/49915"
+  },
+  "classification": {
+    "report_folder": "SSRF-backchannel",
+    "matched_cve_pattern": "CVE-2026-4874",
+    "assigned_cve": "CVE-2026-1518",
+    "attack_type": "Blind Server-Side Request Forgery (SSRF)",
+    "attack_class": "SSRF",
+    "affected_component": "CIBA backchannel authentication ping mode — BackchannelAuthenticationCallbackEndpoint",
+    "confidence": "HIGH",
+    "novel_pattern": false
+  },
+  "signals": {
+    "keywords": ["SSRF", "CIBA", "backchannel", "notification endpoint", "callback URL", "outbound request", "attacker-controlled"],
+    "confirmation_signal": "Keycloak sends unconditional outbound HTTP POST to attacker-configured notification endpoint (127.0.0.1:9999); Docker logs confirm TCP connection attempt",
+    "affected_code": [
+      "BackchannelAuthenticationCallbackEndpoint.java:232",
+      "UriUtils.java"
+    ],
+    "root_cause": "UriUtils.checkUrl() validates only URL scheme, not hostname. No loopback/RFC-1918 blocking on notification_endpoint registration."
+  },
+  "outcome": {
+    "verdict": "confirmed",
+    "confirmed": true,
+    "severity": "IMPORTANT",
+    "triage_date": "2026-07-04",
+    "unpatched_as_of": "2026-07-04",
+    "keycloak_version": "26.6.x"
+  },
+  "artifacts": {
+    "report_markdown": "triage-49915-2026-07-04.md",
+    "setup_script": "setup_realm.py",
+    "exploit_script": "exploit_test.py",
+    "additional_reports": ["triage-49915-2026-06-28.md"]
+  },
+  "retrieval_summary": {
+    "summary": "Blind SSRF in CIBA ping mode: attacker registers a client with a notification_endpoint pointing to an internal address (127.x, RFC-1918, link-local). Keycloak performs unconditional outbound HTTP POST with no hostname validation. Docker evidence: connection attempt to http://127.0.0.1:9999/notify (failed only due to ECONNREFUSED, not validation). Requires admin access or valid Initial Access Token.",
+    "fix_recommendation": "Reject loopback (127.x/::1), link-local (169.254.x), and RFC-1918 ranges (10.x, 172.16-31.x, 192.168.x) in UriUtils.checkUrl()"
+  }
+}

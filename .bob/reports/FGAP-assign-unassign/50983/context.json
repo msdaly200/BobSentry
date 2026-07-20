@@ -1,0 +1,39 @@
+{
+  "schema_version": "1.0",
+  "issue_number": "50983",
+  "project": {
+    "name": "keycloak"
+  },
+  "classification": {
+    "report_folder": "FGAP-assign-unassign",
+    "matched_cve_pattern": "CVE-2026-11986",
+    "attack_type": "Authorization Bypass — Missing canView() in Admin UI flow summary mapper",
+    "affected_component": "Admin UI extension (ui-ext/authentication-management/flows) / Client RBAC",
+    "confidence": "HIGH",
+    "novel_pattern": false,
+    "novel_sub_variant": true,
+    "novel_sub_variant_description": "Original CVE-2026-11986 was role assign/unassign asymmetry; this is missing canView() on Admin UI aggregation endpoint — same Class 10 root cause, different code surface"
+  },
+  "signals": {
+    "keywords": ["FGAP", "fine-grained", "admin permissions", "view-clients", "permission bypass", "view-realm"],
+    "confirmation_signal": "HTTP 200 on GET /ui-ext/authentication-management/flows returns hidden client ID in usedBy.values (SPECIFIC_CLIENTS) to view-realm-only actor; direct GET /clients/{id} correctly returns 403 for same actor"
+  },
+  "outcome": {
+    "verdict": "confirmed",
+    "severity": "MEDIUM",
+    "cvss_base_score": 5.4,
+    "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:H/UI:N/S:U/C:H/I:N/A:N",
+    "triage_date": "2026-07-20",
+    "keycloak_version_tested": "26.2.5"
+  },
+  "artifacts": {
+    "report_markdown": "triage-50983-2026-07-20.md",
+    "setup_script": "setup_realm.py",
+    "exploit_script": "exploit_test.py",
+    "setup_log": "setup.log",
+    "result_log": "result.log"
+  },
+  "retrieval_summary": {
+    "summary": "Information disclosure via Admin UI flow summary endpoint: view-realm-only delegated admin enumerates hidden client IDs from usedBy.values in /ui-ext/authentication-management/flows. Missing auth.clients().canView(client) guard in flow summary mapper. Confirmed on Keycloak 26.2.5. Novel sub-variant of FGAP authorization asymmetry (Class 10)."
+  }
+}

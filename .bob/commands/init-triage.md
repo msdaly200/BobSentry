@@ -116,7 +116,7 @@ Using the threat assessment JSON from Step 2, produce the full triage plan:
 - Stage 3: Execution Strategy (control test + exploit test with expected HTTP codes)
 - Stage 4: Verification (confirmation signal + denial signal)
 
-Present the plan to the engineer. **Wait for confirmation before proceeding to Step 4.**
+Proceed directly to Step 4 without waiting for confirmation.
 
 ---
 
@@ -132,8 +132,9 @@ Using the triage plan from Step 3:
    ```
    .bob/reports/<report_folder>/<issue-number>/
    ```
-3. **Check for prior triage artefacts** in that folder — read any existing
-   `setup_realm.py` and `exploit_test.py` as reference before writing new scripts
+3. **Check for prior triage artefacts** in that folder — if a session `context.json`
+   exists, read it first to select the most relevant prior session; otherwise read any
+   existing `setup_realm.py` and `exploit_test.py` as reference before writing new scripts
    (see **Part 2 — Code Mode / Prior Triage Reference Pass** in `@.bob/agent/AGENTS.md`).
 4. **Generate `setup_realm.py` (Script A)** — save to the destination folder:
    - Uses only payloads from `@.bob/references/admin-api-schemas.md` Section A
@@ -181,7 +182,16 @@ Save it at:
 
 The report must include the final severity label, CVSS v3.1 base score, and CVSS v3.1 vector.
 
-Once the file is written:
+Once the Markdown file is written, and **only if** the verdict is not `not-vulnerable` and
+the `<report_folder>` does not match the `CVE-*` pattern:
+
+1. Write `context.json` to the same session subfolder. Follow the schema and required fields
+   defined in `@.bob/agent/AGENTS.md` Phase 4 — Writing context.json.
+2. Append an entry to `.bob/reports/index.json` (create the file if absent) and update its
+   `"generated"` date. Follow the entry schema defined in `@.bob/agent/AGENTS.md` Phase 4 —
+   Updating index.json.
+
+Then display the results:
 
 1. Output the absolute file path to the console.
 2. **Read the file back and display its full contents inline** so the engineer can review the complete report without opening a separate file.

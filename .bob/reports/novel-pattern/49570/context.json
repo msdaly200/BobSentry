@@ -1,0 +1,53 @@
+{
+  "schema_version": "1.0",
+  "issue_number": "49570",
+  "project": {
+    "name": "keycloak",
+    "url": "https://github.com/keycloak/keycloak/issues/49570",
+    "upstream_dependency": "io.opentelemetry:opentelemetry-api:1.57.0"
+  },
+  "classification": {
+    "report_folder": "novel-pattern",
+    "matched_cve_pattern": null,
+    "assigned_cve": "CVE-2026-45292",
+    "attack_type": "Denial of Service via Unbounded Memory Allocation",
+    "attack_class": "DoS — Third-party Dependency",
+    "affected_component": "OpenTelemetry W3C Baggage propagation — W3CBaggagePropagator (upstream OTel SDK 1.57.0)",
+    "confidence": "HIGH",
+    "novel_pattern": true,
+    "novel_pattern_reason": "Third-party upstream dependency CVE (not a Keycloak logic flaw); no existing signature match in CVE knowledge base"
+  },
+  "signals": {
+    "keywords": ["W3C baggage", "opentelemetry", "tracing", "DoS", "memory exhaustion", "unbounded allocation", "baggage header"],
+    "confirmation_signal": "Server unresponsive after baggage header storm (20 requests × 60 KB baggage, 859 key-value pairs each); health check failed post-storm",
+    "affected_code": [
+      "W3CBaggagePropagator (upstream OTel SDK 1.57.0)",
+      "InstrumenterVertxTracer.receiveRequest()",
+      "quarkus/runtime/src/main/resources/application.properties:64"
+    ],
+    "prerequisites": "--tracing-enabled=true (non-default); no authentication required",
+    "exploit_metrics": {
+      "baggage_size_bytes": 60019,
+      "baggage_entries": 859,
+      "iterations": 20,
+      "all_returned_http": 401
+    }
+  },
+  "outcome": {
+    "verdict": "confirmed",
+    "confirmed": true,
+    "severity": "IMPORTANT",
+    "severity_note": "Upstream severity MEDIUM; elevated to IMPORTANT due to unauthenticated attack surface and operational risk",
+    "triage_date": "2026-07-04",
+    "keycloak_version": "26.1.5 (Quarkus 3.15.4)"
+  },
+  "artifacts": {
+    "report_markdown": "triage-49570-2026-07-04.md",
+    "setup_script": "setup_realm.py",
+    "exploit_script": "exploit_test.py"
+  },
+  "retrieval_summary": {
+    "summary": "Novel pattern: unauthenticated DoS via W3C Baggage header inflation in OpenTelemetry SDK. When --tracing-enabled=true, W3CBaggagePropagator.extract() allocates one HashMap entry per baggage pair without entry-count bounds. Sending 20 requests with 60 KB baggage (859 key-value pairs each) causes JVM heap exhaustion or Vert.x event loop saturation. Fix: upgrade opentelemetry-api to ≥1.62.0. Interim: disable tracing or reduce max-header-size to 8192.",
+    "fix_recommendation": "Upgrade opentelemetry-api to ≥1.62.0 (requires Quarkus 3.34.x). Interim mitigations: disable tracing, proxy-level baggage sanitization, or set max-header-size=8192."
+  }
+}

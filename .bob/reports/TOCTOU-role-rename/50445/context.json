@@ -1,0 +1,45 @@
+{
+  "schema_version": "1.0",
+  "issue_number": "50445",
+  "project": {
+    "name": "keycloak",
+    "url": "https://github.com/keycloak/keycloak/issues/50445"
+  },
+  "classification": {
+    "report_folder": "TOCTOU-role-rename",
+    "matched_cve_pattern": "CVE-2026-9796",
+    "assigned_cve": "CVE-2026-4629",
+    "attack_type": "Privilege Escalation via Hardcoded Role Mapper Injection",
+    "attack_class": "Class 10 — Improper Access Control in Admin REST API (sub-variant: mapper injection)",
+    "affected_component": "Admin REST API / ProtocolMappersResource + TokenManager (HardcodedRole mapper pipeline)",
+    "confidence": "HIGH",
+    "novel_pattern": false,
+    "novel_sub_variant": true
+  },
+  "signals": {
+    "keywords": ["manage-clients", "realm-admin", "privilege escalation", "hardcoded role mapper", "oidc-hardcoded-role-mapper", "mapper injection", "token claim", "scope bypass"],
+    "confirmation_signal": "POST /admin/realms/triage-realm/clients/{uuid}/protocol-mappers/models returned 201 Created (expected 403); token for triage-user contained realm-admin in realm_access.roles",
+    "affected_code": [
+      "services/src/main/java/org/keycloak/services/resources/admin/ProtocolMappersResource.java",
+      "services/src/main/java/org/keycloak/protocol/oidc/mappers/HardcodedRole.java",
+      "services/src/main/java/org/keycloak/protocol/oidc/TokenManager.java"
+    ]
+  },
+  "outcome": {
+    "verdict": "confirmed",
+    "confirmed": true,
+    "severity": "BLOCKER",
+    "cvss_base_score": 9.1,
+    "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:C/C:H/I:H/A:N",
+    "triage_date": "2026-07-20",
+    "keycloak_version": "26.1"
+  },
+  "artifacts": {
+    "report_markdown": "triage-50445-2026-07-20.md",
+    "setup_script": "setup_realm.py",
+    "exploit_script": "exploit_test.py"
+  },
+  "retrieval_summary": {
+    "summary": "CVE-2026-4629: A user with manage-clients (but not realm-admin) can inject an oidc-hardcoded-role-mapper onto any OIDC client via the Admin REST API. The mapper causes Keycloak's TokenManager to embed realm-admin in all issued tokens for that client, granting full realm-administrator privileges to any authenticating user. Confirmed on Keycloak 26.1 — mapper injection returned 201 and issued JWT contained realm-admin."
+  }
+}

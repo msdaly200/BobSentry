@@ -1,0 +1,22 @@
+[SETUP] Waiting for Keycloak to be ready...
+[SETUP] Keycloak is ready.
+[SETUP] Admin token obtained.
+[SETUP] Realm 'triage-realm': created.
+[SETUP] Client 'triage-client': created.
+[SETUP] Hidden client 'triage-secret-client': created.
+[SETUP] 'triage-secret-client' UUID: fa2d137d-caf3-4277-9b02-5935036f0bed
+[SETUP] Custom flow 'triage-custom-flow': created.
+[SETUP] Custom flow ID: 15392d58-9a57-4bf6-a6f1-4c19b3f0b165
+[SETUP] Custom flow 'triage-custom-flow' bound to 'triage-secret-client'.
+[SETUP] Flow binding verification: 'triage-secret-client' appears in /ui-ext/flows: True
+[SETUP] Delegated admin 'triage-viewer': created.
+[SETUP] 'view-realm' role ID: 68997507-e2ee-46b5-9919-ac365195d3d0
+[SETUP] Granted ONLY 'view-realm' to 'triage-viewer' (view-clients intentionally withheld).
+[SETUP] BASELINE OK: 'triage-viewer' cannot read hidden client via /clients/{id} (403).
+
+[SETUP] Setup complete.
+[SETUP]   Viewer: triage-viewer/triage-pass (view-realm ONLY)
+[SETUP]   Hidden client: triage-secret-client (uuid=fa2d137d-caf3-4277-9b02-5935036f0bed)
+[SETUP]   Custom flow: triage-custom-flow (id=15392d58-9a57-4bf6-a6f1-4c19b3f0b165)
+[SETUP]   Binding confirmed: True
+[SETUP]   Direct client GET: 403
