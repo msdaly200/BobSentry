@@ -16,6 +16,9 @@ metadata:
 **Target repository:** `keycloak/keycloak` (hardcoded)
 
 Kicks off the full Bob-Sentry **5-phase** triage pipeline against a Keycloak GitHub issue.
+The pipeline runs from raw issue ingestion through to a local Markdown triage report,
+and closes with a mandatory retrospective that feeds learnings back into the agent files.
+
 The pipeline runs from raw issue ingestion through to a local HTML triage report,
 and closes with a mandatory retrospective that feeds learnings back into the agent files.
 
@@ -108,12 +111,14 @@ Produce the threat assessment JSON:
 ```
 
 If `novel_pattern: true` AND `confidence: LOW` → halt pipeline, output `ESCALATE`,
+save a partial report to `.bob/reports/triage-<number>-<date>-ESCALATED.md`.
 save a partial report to `.bob/reports/<report_folder>/<issue-number>/triage-<issue-number>-<date>-ESCALATED.md`.
 
 ---
 
 ### Step 3 — Plan Mode: 4-Stage Pipeline
 
+Switch to Plan mode. Load `@.bob/plan/AGENTS.md`.
 Switch to Plan mode. Load `@.bob/agent/AGENTS.md` and use the **Part 1 — Plan Mode** section.
 
 Using the threat assessment JSON from Step 2, produce the full triage plan:
@@ -130,6 +135,7 @@ Present the plan to the engineer. **Wait for confirmation before proceeding to S
 
 ### Step 4 — Code Mode: Generate Python Scripts
 
+Switch to Code mode. Load `@.bob/code/AGENTS.md`.
 Switch to Code mode. Load `@.bob/agent/AGENTS.md` and use the **Part 2 — Code Mode** section.
 
 Using the triage plan from Step 3:
@@ -142,6 +148,7 @@ Using the triage plan from Step 3:
    ```
 3. **Check for prior triage artefacts** in that folder — read any existing
    `setup_realm.py` and `exploit_test.py` as reference before writing new scripts
+   (see Prior Triage Reference Pass in `@.bob/code/AGENTS.md`).
    (see **Part 2 — Code Mode / Prior Triage Reference Pass** in `@.bob/agent/AGENTS.md`).
 4. **Generate `setup_realm.py` (Script A)** — save to the destination folder:
    - Uses only payloads from `@.bob/references/admin-api-schemas.md` Section A
@@ -160,6 +167,9 @@ Present both scripts to the engineer for review before proceeding to Step 5.
 
 ---
 
+### Step 5 — Agent Mode: Execute Sandbox & Produce Report
+
+Switch to Agent mode. Load `@.bob/agent/AGENTS.md`.
 ### Step 5 — Agent Mode: Execute Sandbox, Assign Severity & Produce Report
 
 Switch to Agent mode. Load `@.bob/agent/AGENTS.md` and `@.bob/references/keycloak-triage-severity-guidance.md`.
@@ -173,6 +183,14 @@ Execute the full agent pipeline:
 5. Secret scan Script B — halt and escalate if credential pattern found
 6. Run Script B — capture stdout/stderr to `result.log`
 7. Parse the `RESULT:` JSON line from `result.log`
+8. **Always run cleanup:** `docker compose down -v && rm -rf /tmp/keycloak-triage/`
+
+Produce the final triage report at:
+```
+.bob/reports/triage-<issue-number>-<YYYY-MM-DD>.md
+```
+
+Using the template in `@.bob/agent/AGENTS.md` (Phase 4 section).
 8. Assign severity exactly once using `CVSS v3.1`, based on the issue details and Step 5 execution evidence
    - Output a severity label: `LOW`, `MEDIUM`, `HIGH`, or `CRITICAL`
    - Output the numeric CVSS v3.1 base score
@@ -192,6 +210,8 @@ The report must include the final severity label, CVSS v3.1 base score, and CVSS
 Once the file is written:
 
 1. Output the absolute file path to the console.
+2. **Read the file back and display its full contents inline** so the engineer can review
+   the complete report without opening a separate file.
 2. **Read the file back and display its full contents inline** so the engineer can review the complete report without opening a separate file.
 3. Output the verdict JSON separately after the report for easy parsing.
 
@@ -270,6 +290,7 @@ At the end of a successful pipeline run, display the following **in order**:
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  TRIAGE REPORT — keycloak/keycloak#<number>
+ .bob/reports/triage-<number>-<date>.md
  .bob/reports/<report_folder>/<issue-number>/triage-<issue-number>-<date>.md
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 <full report contents rendered here>
@@ -279,6 +300,7 @@ At the end of a successful pipeline run, display the following **in order**:
 **2. The verdict JSON:**
 
 ```json
+{ "confirmed": true/false, "severity": "...", "affected_component": "...", ... }
 {
   "confirmed": true/false,
   "severity": "LOW|MEDIUM|HIGH|CRITICAL",
@@ -299,6 +321,8 @@ At the end of a successful pipeline run, display the following **in order**:
 ║  Dup check: PASSED (none found) | SKIPPED                ║
 ║  Status:   CONFIRMED VULNERABLE | PATCH VERIFIED |       ║
 ║            ESCALATED | NOT REPRODUCIBLE                  ║
+║  Report:   .bob/reports/triage-<number>-<date>.md        ║
+║  Retro:    .bob/reports/retro-<number>-<date>.md         ║
 ║  Report:   .bob/reports/<report_folder>/<issue-number>/  ║
 ║            triage-<number>-<date>.md                   ║
 ║  Retro:    Retrospective presented in chat; updates      ║
