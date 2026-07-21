@@ -3,7 +3,21 @@
 # USAGE INSTRUCTIONS FOR AGENT MODE:
 #   1. Resolve {{KEYCLOAK_VERSION}} using this priority order:
 #      a. Explicit version named in the SV/CVE report (e.g. "26.0.5")
-#      b. Version current at the issue filing date (June 2026 issues → "26.1")
+#      b. Version current at the issue filing date — use the table below:
+#
+#         Issue filing date      → Keycloak tag
+#         ─────────────────────────────────────
+#         before Jan 2024        → 23.0
+#         Jan 2024 – Jun 2024    → 24.0
+#         Jul 2024 – Dec 2024    → 26.0
+#         Jan 2025 – Jun 2025    → 26.1
+#         Jul 2025 – Dec 2025    → 26.2
+#         Jan 2026 – Jun 2026    → 26.1  (26.x LTS branch)
+#         Jul 2026 – present     → latest
+#         ─────────────────────────────────────
+#         This table is the SINGLE SOURCE OF TRUTH for version resolution.
+#         plan/AGENTS.md and agent/AGENTS.md both reference this table.
+#         Update only here when new releases ship.
 #      c. "latest" if neither can be determined
 #   2. Copy this file to /tmp/keycloak-triage/docker-compose.yml
 #      substituting the resolved version for {{KEYCLOAK_VERSION}}

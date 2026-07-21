@@ -1,0 +1,15 @@
+[SETUP] Obtaining admin token... OK
+[SETUP] Creating realm 'triage-realm'... OK
+[SETUP] Creating client 'triage-client'... OK
+[SETUP] Resolving client UUID for 'triage-client'... OK (c4692c20-cb4c-4963-a9e1-58563b9264aa)
+[SETUP] Creating user 'triage-user'... OK
+[SETUP] Creating delegated admin user 'delegated-admin'... OK
+[SETUP] Granting 'manage-clients' role to 'delegated-admin'... OK
+[SETUP] Verifying 'delegated-admin' does NOT hold 'realm-admin'... OK (realm-admin absent — precondition satisfied)
+[SETUP] client_uuid=c4692c20-cb4c-4963-a9e1-58563b9264aa
+[SETUP] test_user_uuid=302003ac-788c-4f5c-bc91-3c6aa097cfb1
+[SETUP] delegated_admin_uuid=2bcf32c2-3fd8-4cbb-b430-d043bcf28334
+[SETUP] rm_client_uuid=6ef4d32e-2a20-4982-b0c0-a908836f984d
+[SETUP] Environment ready. Proceeding to exploit phase.
+{"phase": "setup", "status": "ready", "realm": "triage-realm", "client_uuid": "c4692c20-cb4c-4963-a9e1-58563b9264aa", "test_user_uuid": "302003ac-788c-4f5c-bc91-3c6aa097cfb1", "delegated_admin_uuid": "2bcf32c2-3fd8-4cbb-b430-d043bcf28334", "rm_client_uuid": "6ef4d32e-2a20-4982-b0c0-a908836f984d"}
+RESULT: {"phase": "setup", "status": "ready", "realm": "triage-realm"}

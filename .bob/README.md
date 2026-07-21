@@ -45,9 +45,9 @@ All artefacts land under `.bob/reports/`, organised by attack class and issue nu
   <attack-class>/
     <issue-number>/
       setup_realm.py            ← Script A: provisions the sandbox realm
-      exploit_test.py             ← Script B: executes the exploit and asserts the result
+      exploit_test.py           ← Script B: executes the exploit and asserts the result
       triage-<number>-<date>.md ← the full triage report
-  metrics-summary.md              ← running productivity totals across all sessions
+  metrics-summary.md            ← running productivity totals across all sessions
 ```
 
 **Attack-class folder names** (set by the CVE Analyzer):
@@ -92,3 +92,4 @@ To re-triage a known issue (e.g. after a patch is applied), run `/triage <same-i
 | [`agent/AGENTS.md`](agent/AGENTS.md) | Consolidated instructions for Plan mode, Code mode, and Agent mode |
 | [`agent/DUPLICATE_SEARCH.md`](agent/DUPLICATE_SEARCH.md) | Duplicate detection procedure used by `searchDup` flag |
 | [`reports/`](reports/) | All triage output (reports, scripts, metrics) — the only workspace path Bob writes to |
+| [`skills/cve-analyzer/ui/`](skills/cve-analyzer/ui/) | HTML report generator, Jinja2 templates, and CSS assets — run `generate_html_reports.py --all` to produce HTML from markdown |

@@ -1,0 +1,60 @@
+{
+  "schema_version": "1.0",
+  "description": "Index of completed triage sessions. Only includes confirmed or novel-pattern Keycloak GitHub issues stored under .bob/reports/<attack-class-folder>/<issue-number>/. False positives, CVE-named demo folders, and portability demonstrations are excluded.",
+  "generated": "2026-07-20",
+  "sessions": [
+    {
+      "issue_number": "50445",
+      "report_folder": "TOCTOU-role-rename",
+      "session_path": ".bob/reports/TOCTOU-role-rename/50445/",
+      "context_json": ".bob/reports/TOCTOU-role-rename/50445/context.json",
+      "assigned_cve": "CVE-2026-4629",
+      "matched_cve_pattern": "CVE-2026-9796",
+      "attack_type": "Privilege Escalation via Hardcoded Role Mapper Injection",
+      "verdict": "confirmed",
+      "severity": "BLOCKER",
+      "novel_pattern": false,
+      "triage_date": "2026-07-20"
+    },
+    {
+      "issue_number": "49915",
+      "report_folder": "SSRF-backchannel",
+      "session_path": ".bob/reports/SSRF-backchannel/49915/",
+      "context_json": ".bob/reports/SSRF-backchannel/49915/context.json",
+      "assigned_cve": "CVE-2026-1518",
+      "matched_cve_pattern": "CVE-2026-4874",
+      "attack_type": "Blind Server-Side Request Forgery (SSRF)",
+      "verdict": "confirmed",
+      "severity": "IMPORTANT",
+      "novel_pattern": false,
+      "triage_date": "2026-07-04"
+    },
+    {
+      "issue_number": "49570",
+      "report_folder": "novel-pattern",
+      "session_path": ".bob/reports/novel-pattern/49570/",
+      "context_json": ".bob/reports/novel-pattern/49570/context.json",
+      "assigned_cve": "CVE-2026-45292",
+      "matched_cve_pattern": null,
+      "attack_type": "Denial of Service via Unbounded Memory Allocation (OTel W3C Baggage)",
+      "verdict": "confirmed",
+      "severity": "IMPORTANT",
+      "novel_pattern": true,
+      "triage_date": "2026-07-04"
+    },
+    {
+      "issue_number": "50983",
+      "report_folder": "FGAP-assign-unassign",
+      "session_path": ".bob/reports/FGAP-assign-unassign/50983/",
+      "context_json": ".bob/reports/FGAP-assign-unassign/50983/context.json",
+      "assigned_cve": null,
+      "matched_cve_pattern": "CVE-2026-11986",
+      "attack_type": "Authorization Bypass — Missing canView() in Admin UI flow summary mapper",
+      "verdict": "confirmed",
+      "severity": "MEDIUM",
+      "novel_pattern": false,
+      "novel_sub_variant": true,
+      "triage_date": "2026-07-20"
+    }
+  ]
+}

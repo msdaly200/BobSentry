@@ -18,17 +18,17 @@ generation until the engineer confirms how to proceed.
 
 ## When to Run
 
-Run this search when the user invokes:
-
-```
-/triage <issue-number> searchDup
-```
-
-Skip this search (proceed directly to Step 1 of the triage pipeline) when the user
-invokes:
+Run this search by default — i.e. whenever the user invokes:
 
 ```
 /triage <issue-number>
+```
+
+Skip this search (proceed directly to Step 1 of the triage pipeline) only when the
+user explicitly passes the opt-out flag:
+
+```
+/triage <issue-number> --skip-dups
 ```
 
 ---
@@ -179,7 +179,7 @@ the engineer.
 - If `gh` is unavailable or unauthenticated, output:
   ```
   ERROR: GitHub CLI (gh) not available. Cannot perform duplicate search.
-  To skip duplicate check and proceed directly, type: /triage <issue-number>
+  To skip duplicate check and proceed directly, type: /triage <issue-number> --skip-dups
   ```
 - Results are displayed inline in the chat only. Nothing is written to `.bob/reports/`
   for the duplicate search phase — reports are only written after a full triage completes.

