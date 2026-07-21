@@ -1,0 +1,39 @@
+{
+  "schema_version": "1.0",
+  "issue_number": "50981",
+  "project": {
+    "name": "keycloak"
+  },
+  "classification": {
+    "report_folder": "FGAP-assign-unassign",
+    "matched_cve_pattern": "CVE-2026-11986",
+    "attack_type": "Authorization Bypass -- Missing per-client visibility filter on user subresource endpoints",
+    "affected_component": "UserResource (sessions/consents/offline-sessions) / FGAP v2 client visibility",
+    "confidence": "HIGH",
+    "novel_pattern": false,
+    "novel_sub_variant": true,
+    "novel_sub_variant_description": "Original CVE-2026-11986 was role assign/unassign asymmetry; this is missing auth.clients().canView() filter on UserResource session/consent/offline-session response builders -- same Class 10 root cause, different code surface (user subresource endpoints vs role-mapper endpoints)"
+  },
+  "signals": {
+    "keywords": ["FGAP", "fine-grained", "admin permissions", "view-users", "permission bypass", "hidden client", "session disclosure", "consent disclosure", "offline-session"],
+    "confirmation_signal": "HTTP 200 on GET /users/{id}/sessions returns hidden client UUID and clientId in clients map to view-users-only actor; GET /users/{id}/consents returns hidden client consent record; GET /users/{id}/offline-sessions/{clientUuid} returns full offline session data. Direct GET /clients/{id} correctly returns 403 for same actor."
+  },
+  "outcome": {
+    "verdict": "confirmed",
+    "severity": "MEDIUM",
+    "cvss_base_score": 5.4,
+    "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:H/UI:N/S:U/C:H/I:N/A:N",
+    "triage_date": "2026-07-21",
+    "keycloak_version_tested": "latest"
+  },
+  "artifacts": {
+    "report_markdown": "triage-50981-2026-07-21.md",
+    "setup_script": "setup_realm.py",
+    "exploit_script": "exploit_test.py",
+    "setup_log": "setup.log",
+    "result_log": "result.log"
+  },
+  "retrieval_summary": {
+    "summary": "Information disclosure via user subresource Admin API endpoints: view-users-only delegated admin enumerates hidden client UUIDs, clientIds, session participation, offline-token grants, and consent metadata through GET /users/{id}/sessions, /consents, /offline-sessions/{clientUuid}. Missing auth.clients().canView(client) filter in UserResource response builders. Confirmed on Keycloak latest (dev branch). Novel sub-variant of FGAP authorization asymmetry (Class 10) -- different code surface from #50983 (auth-flow endpoint) and original CVE-2026-11986 (role assignment)."
+  }
+}

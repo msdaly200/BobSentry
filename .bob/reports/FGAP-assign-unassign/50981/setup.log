@@ -1,0 +1,22 @@
+[SETUP] Waiting for Keycloak to be ready...
+[SETUP] Keycloak is ready.
+[SETUP] Admin token obtained.
+[SETUP] Realm 'triage-realm': created.
+[SETUP] Public client 'triage-client': created.
+[SETUP] Hidden client 'triage-secret-client': created.
+[SETUP] 'triage-secret-client' UUID: 4d0e90ff-9faa-462f-8405-25a78383cbd6
+[SETUP] Victim user 'triage-victim': created.
+[SETUP] 'triage-victim' UUID: 86df5514-a668-45ca-a5be-79c7f962db91
+[SETUP] Delegated admin 'triage-viewer': created.
+[SETUP] Granted ONLY 'view-users' to 'triage-viewer' (view-clients withheld).
+[SETUP] Victim login via hidden client: HTTP 200
+[SETUP] Victim offline token via hidden client: HTTP 200
+[SETUP] BASELINE OK: viewer cannot read hidden client via /clients/{id} (403). OK
+
+[SETUP] Setup complete.
+[SETUP]   Viewer:        triage-viewer/triage-pass (view-users ONLY -- no view-clients)
+[SETUP]   Hidden client: triage-secret-client (uuid=4d0e90ff-9faa-462f-8405-25a78383cbd6)
+[SETUP]   Victim:        triage-victim (session=True, offline=True)
+[SETUP]   Baseline:      direct GET /clients/{id} -> 403 (expect 403)
+
+RESULT: {"phase": "setup", "status": "ready", "realm": "triage-realm"}

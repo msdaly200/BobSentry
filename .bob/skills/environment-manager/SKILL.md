@@ -1,7 +1,34 @@
 # Skill Name: Ephemeral Podman Environment Manager
-# Description: Rules and automated hooks to guarantee a completely isolated, pristine,
-# and uncontaminated Keycloak target environment for each replication cycle.
-# Invoked during: Phase 3 (Autonomous Exploit Replication) of every Bob-Sentry triage session.
+# Description: ALTERNATIVE — not used by the default Bob-Sentry triage pipeline.
+# The default pipeline uses Docker Compose (docker compose up/down). This skill
+# documents a Podman-based alternative for environments where Docker is unavailable.
+# Do NOT load this skill during a standard /triage session.
+
+---
+
+> ## ⚠️ NOT THE DEFAULT PIPELINE — READ BEFORE LOADING
+>
+> **This skill describes a Podman-based sandbox approach that is INCOMPATIBLE with the
+> default Bob-Sentry triage pipeline.**
+>
+> The default pipeline (`/triage` command, `init-triage.md` Step 5) uses:
+> - **`docker compose up -d`** to start the sandbox
+> - **`docker compose down -v`** for mandatory cleanup (Rule 6)
+> - A `docker-compose.yml` template in `/tmp/keycloak-triage/`
+>
+> This skill uses `podman run` / `podman rm` — a different binary, different networking
+> model, and an incompatible cleanup command. If loaded alongside the default pipeline
+> it will generate contradictory scripts that cannot both execute correctly.
+>
+> **When to use this skill:**
+> Only activate this skill when the engineer explicitly requests a Podman-based triage run
+> (e.g. on a system where Docker is unavailable or disallowed). It must NOT be loaded
+> during a standard `/triage` session.
+>
+> **When NOT to use this skill:**
+> Every standard `/triage` session. The pipeline already handles container lifecycle,
+> readiness polling, and cleanup via the Docker Compose path in `AGENTS.md` and
+> `security-guardrails.md` Rule 6.
 
 ---
 

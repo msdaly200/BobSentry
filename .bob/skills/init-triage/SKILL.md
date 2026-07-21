@@ -8,17 +8,14 @@ metadata:
 
 # Command: `/triage`
 
-**Usage:** `/triage <github-issue-number> [searchDup]`
+**Usage:** `/triage <github-issue-number> [--skip-dups]`
 **Examples:**
-- `/triage 49427` — fetch issue and begin triage immediately
-- `/triage 49427 searchDup` — check for duplicate issues first; halt if duplicates found
+- `/triage 49427` — check for duplicate issues, then begin triage
+- `/triage 49427 --skip-dups` — skip duplicate check and begin triage immediately
 
 **Target repository:** `keycloak/keycloak` (hardcoded)
 
 Kicks off the full Bob-Sentry **5-phase** triage pipeline against a Keycloak GitHub issue.
-The pipeline runs from raw issue ingestion through to a local Markdown triage report,
-and closes with a mandatory retrospective that feeds learnings back into the agent files.
-
 The pipeline runs from raw issue ingestion through to a local HTML triage report,
 and closes with a mandatory retrospective that feeds learnings back into the agent files.
 
@@ -26,10 +23,10 @@ For severity assignment, load `@.bob/references/keycloak-triage-severity-guidanc
 Use `CVSS v3.1` as the primary scoring framework and treat the Keycloak triage process as
 supporting guidance only.
 
-The optional `searchDup` flag inserts a **pre-triage duplicate search** before any CVE
-analysis, sandbox provisioning, or script generation. If candidate duplicates are found,
-the pipeline halts and reports them — it does not proceed until the engineer re-issues
-the command without `searchDup`.
+A **pre-triage duplicate search** runs by default before any CVE analysis, sandbox
+provisioning, or script generation. If candidate duplicates are found, the pipeline halts
+and reports them — it does not proceed until the engineer re-issues the command. Pass
+`--skip-dups` to bypass the duplicate check and begin triage immediately.
 
 ---
 
@@ -52,15 +49,45 @@ The only permitted GitHub operation is reading issue content (Step 1 below).
 
 ## Pipeline Steps
 
-### Step 0 — Duplicate Search *(only when `searchDup` is present)*
+### Step -1 — Prior Triage Detection *(always runs first)*
+
+Before any other action, read `.bob/reports/index.json` and check whether an entry
+already exists for the requested issue number.
+
+- **Match found:** Output the prior-triage banner below, read the existing report file
+  from `report_path`, display its full contents inline, then **stop**. Do not proceed
+  to Step 0 or any later step.
+
+```
+╔══════════════════════════════════════════════════════════════╗
+║  PRIOR TRIAGE DETECTED — keycloak/keycloak#<issue-number>    ║
+╠══════════════════════════════════════════════════════════════╣
+║  Verdict:   <verdict>   Severity: <severity>                 ║
+║  Date:      <triage_date>                                    ║
+║  Report:    <report_path>                                    ║
+╚══════════════════════════════════════════════════════════════╝
+```
+
+  After displaying the report, ask the engineer:
+
+  > "This issue was already triaged on `<triage_date>` with verdict **`<verdict>`**.
+  > Would you like to re-triage from scratch, or is this display sufficient?"
+
+  Only proceed to Step 0 if the engineer explicitly requests a re-triage.
+
+- **No match:** Proceed directly to Step 0.
+
+---
+
+### Step 0 — Duplicate Search *(skipped only when `--skip-dups` is passed)*
 
 Load `@.bob/agent/DUPLICATE_SEARCH.md` and execute the full procedure defined there.
 
-- **`searchDup` present:** Run the duplicate search. If candidate duplicates (score ≥ 3)
-  are found, output the duplicate report and **stop here**. Do not proceed to Step 1.
-  If no duplicates are found, output the "NO DUPLICATES FOUND" banner and continue
-  automatically to Step 1.
-- **`searchDup` absent:** Skip Step 0 entirely and proceed directly to Step 1.
+- **`--skip-dups` absent (default):** Run the duplicate search. If candidate duplicates
+  (score ≥ 3) are found, output the duplicate report and **stop here**. Do not proceed
+  to Step 1. If no duplicates are found, output the "NO DUPLICATES FOUND" banner and
+  continue automatically to Step 1.
+- **`--skip-dups` present:** Skip Step 0 entirely and proceed directly to Step 1.
 
 ---
 
@@ -111,14 +138,12 @@ Produce the threat assessment JSON:
 ```
 
 If `novel_pattern: true` AND `confidence: LOW` → halt pipeline, output `ESCALATE`,
-save a partial report to `.bob/reports/triage-<number>-<date>-ESCALATED.md`.
 save a partial report to `.bob/reports/<report_folder>/<issue-number>/triage-<issue-number>-<date>-ESCALATED.md`.
 
 ---
 
 ### Step 3 — Plan Mode: 4-Stage Pipeline
 
-Switch to Plan mode. Load `@.bob/plan/AGENTS.md`.
 Switch to Plan mode. Load `@.bob/agent/AGENTS.md` and use the **Part 1 — Plan Mode** section.
 
 Using the threat assessment JSON from Step 2, produce the full triage plan:
@@ -135,7 +160,6 @@ Proceed directly to Step 4 without waiting for confirmation.
 
 ### Step 4 — Code Mode: Generate Python Scripts
 
-Switch to Code mode. Load `@.bob/code/AGENTS.md`.
 Switch to Code mode. Load `@.bob/agent/AGENTS.md` and use the **Part 2 — Code Mode** section.
 
 Using the triage plan from Step 3:
@@ -146,9 +170,9 @@ Using the triage plan from Step 3:
    ```
    .bob/reports/<report_folder>/<issue-number>/
    ```
-3. **Check for prior triage artefacts** in that folder — read any existing
-   `setup_realm.py` and `exploit_test.py` as reference before writing new scripts
-   (see Prior Triage Reference Pass in `@.bob/code/AGENTS.md`).
+3. **Check for prior triage artefacts** in that folder — if a session `context.json`
+   exists, read it first to select the most relevant prior session; otherwise read any
+   existing `setup_realm.py` and `exploit_test.py` as reference before writing new scripts
    (see **Part 2 — Code Mode / Prior Triage Reference Pass** in `@.bob/agent/AGENTS.md`).
 4. **Generate `setup_realm.py` (Script A)** — save to the destination folder:
    - Uses only payloads from `@.bob/references/admin-api-schemas.md` Section A
@@ -167,9 +191,6 @@ Present both scripts to the engineer for review before proceeding to Step 5.
 
 ---
 
-### Step 5 — Agent Mode: Execute Sandbox & Produce Report
-
-Switch to Agent mode. Load `@.bob/agent/AGENTS.md`.
 ### Step 5 — Agent Mode: Execute Sandbox, Assign Severity & Produce Report
 
 Switch to Agent mode. Load `@.bob/agent/AGENTS.md` and `@.bob/references/keycloak-triage-severity-guidance.md`.
@@ -199,14 +220,17 @@ Save it at:
 
 The report must include the final severity label, CVSS v3.1 base score, and CVSS v3.1 vector.
 
-Once the Markdown file is written, and **only if** the verdict is not `not-vulnerable` and
-the `<report_folder>` does not match the `CVE-*` pattern:
+Once the Markdown file is written:
 
-1. Write `context.json` to the same session subfolder. Follow the schema and required fields
-   defined in `@.bob/agent/AGENTS.md` Phase 4 — Writing context.json.
-2. Append an entry to `.bob/reports/index.json` (create the file if absent) and update its
-   `"generated"` date. Follow the entry schema defined in `@.bob/agent/AGENTS.md` Phase 4 —
-   Updating index.json.
+1. **Write `context.json`** — only if the verdict is not `not-vulnerable` **and** the
+   `<report_folder>` does not match the `CVE-*` pattern. Follow the schema and required
+   fields defined in `@.bob/agent/AGENTS.md` Phase 4 — Writing context.json.
+2. **Upsert an entry in `.bob/reports/index.json`** — always, unless the `<report_folder>`
+   matches the `CVE-*` pattern. This includes `not-vulnerable` verdicts.
+   - For `not-vulnerable` entries, omit the `context_json` field.
+   - **Upsert logic:** search `sessions` for an existing object with the same
+     `issue_number`; replace it in-place if found, append a new entry if not found.
+   - Follow the entry schema defined in `@.bob/agent/AGENTS.md` Phase 4 — Updating index.json.
 
 Then display the results:
 
@@ -289,7 +313,6 @@ At the end of a successful pipeline run, display the following **in order**:
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  TRIAGE REPORT — keycloak/keycloak#<number>
- .bob/reports/triage-<number>-<date>.md
  .bob/reports/<report_folder>/<issue-number>/triage-<issue-number>-<date>.md
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 <full report contents rendered here>
@@ -299,7 +322,6 @@ At the end of a successful pipeline run, display the following **in order**:
 **2. The verdict JSON:**
 
 ```json
-{ "confirmed": true/false, "severity": "...", "affected_component": "...", ... }
 {
   "confirmed": true/false,
   "severity": "LOW|MEDIUM|HIGH|CRITICAL",
@@ -317,11 +339,9 @@ At the end of a successful pipeline run, display the following **in order**:
 ║  Bob-Sentry Triage Complete                              ║
 ╠══════════════════════════════════════════════════════════╣
 ║  Issue:    keycloak/keycloak#<number>                    ║
-║  Dup check: PASSED (none found) | SKIPPED                ║
+║  Dup check: PASSED (none found) | HALTED | SKIPPED       ║
 ║  Status:   CONFIRMED VULNERABLE | PATCH VERIFIED |       ║
 ║            ESCALATED | NOT REPRODUCIBLE                  ║
-║  Report:   .bob/reports/triage-<number>-<date>.md        ║
-║  Retro:    .bob/reports/retro-<number>-<date>.md         ║
 ║  Report:   .bob/reports/<report_folder>/<issue-number>/  ║
 ║            triage-<number>-<date>.md                   ║
 ║  Retro:    Retrospective presented in chat; updates      ║

@@ -51,6 +51,49 @@ Extract and record:
 
 ---
 
+### Step D1.5 — Local Index Search (fast, offline)
+
+Before making any network call, grep `.bob/reports/index.json` for signals that this
+issue — or a closely related one — has already been triaged locally.
+
+Run all three checks unconditionally and collect every matching session object:
+
+```bash
+# Check 1 — exact issue number re-triage
+grep -i '"issue_number".*"<issue-number>"' .bob/reports/index.json
+
+# Check 2 — same report_folder (attack-class cluster)
+grep -i '"report_folder".*"<folder-keyword>"' .bob/reports/index.json
+
+# Check 3 — attack_type substring overlap (use the most specific noun phrase
+#            extracted in Step D2; run this after D2 if needed, or skip if
+#            no specific noun phrase is available yet)
+grep -i '"attack_type".*"<attack-noun-phrase>"' .bob/reports/index.json
+```
+
+> **How to derive `<folder-keyword>`:** use the generic attack-class term extracted
+> from the issue (e.g. `SSRF`, `TOCTOU`, `FGAP`, `novel-pattern`).
+
+For each matching session object, record:
+- `issue_number`, `report_folder`, `attack_type`, `verdict`, `severity`, `triage_date`
+- `session_path` (links to the existing local report)
+
+**Scoring (feeds into Step D4):**
+
+| Local index signal | Score |
+|--------------------|-------|
+| `issue_number` exact match | +6 (definitive re-triage of same issue) |
+| `report_folder` match **and** `attack_type` substring overlap | +4 |
+| `report_folder` match only | +2 |
+| `attack_type` substring overlap only | +2 |
+
+A local index hit with score ≥ 3 is a **candidate duplicate** — treat it identically
+to a high-scoring GitHub result in Step D5.
+
+If the local index is empty or no check matches, proceed silently to Step D2.
+
+---
+
 ### Step D2 — Extract Search Terms
 
 From the issue title and body, extract a ranked list of search terms. Apply this
@@ -101,6 +144,10 @@ For each result returned, score it against the target issue using these criteria
 
 | Signal | Score |
 |--------|-------|
+| **Local index:** `issue_number` exact match | +6 (definitive re-triage) |
+| **Local index:** `report_folder` + `attack_type` substring overlap | +4 |
+| **Local index:** `report_folder` match only | +2 |
+| **Local index:** `attack_type` substring overlap only | +2 |
 | Same CVE identifier in title or body | +5 (definitive duplicate) |
 | Same affected component (from `area/*` label match) | +2 |
 | Same attack type keyword in title | +2 |
@@ -130,7 +177,15 @@ Output the following and **HALT THE PIPELINE**:
 ║  Result: POSSIBLE DUPLICATES FOUND — Triage halted           ║
 ╚══════════════════════════════════════════════════════════════╝
 
-## Candidate Duplicates
+## Local Index Hits
+
+| # | Issue | Report Folder | Attack Type | Verdict | Triage Date | Report Path |
+|---|-------|---------------|-------------|---------|-------------|-------------|
+| 1 | #NNNNN | <folder> | <attack_type> | confirmed/not-vuln | YYYY-MM-DD | <session_path> |
+
+_(Omit this section if no local index matches were found.)_
+
+## Candidate Duplicates (GitHub)
 
 | # | Issue | Title | State | Score | URL |
 |---|-------|-------|-------|-------|-----|
@@ -143,7 +198,8 @@ Review the issues above before proceeding. If these are confirmed duplicates:
 - Link this issue to the existing one and close.
 
 If they are NOT duplicates (different root cause or different component):
-- Type `/triage <issue-number>` (without searchDup) to proceed with triage.
+- Type `/triage <issue-number>` to proceed with triage (duplicate search will run again).
+- Or type `/triage <issue-number> --skip-dups` to bypass the duplicate check entirely.
 ```
 
 Do **not** proceed to CVE analysis, sandbox provisioning, or script generation.
@@ -162,8 +218,9 @@ Output:
 ║  Result: NO DUPLICATES FOUND — Proceeding with triage        ║
 ╚══════════════════════════════════════════════════════════════╝
 
+Local index checked: yes (0 matches)
 Search terms used: ["<term-1>", "<term-2>", "<term-3>"]
-Issues examined: <N>
+GitHub issues examined: <N>
 ```
 
 Then **automatically continue** to Step 1 of the standard triage pipeline
