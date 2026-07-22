@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
-  "description": "Index of completed triage sessions. Only includes confirmed or novel-pattern Keycloak GitHub issues stored under .bob/reports/<attack-class-folder>/<issue-number>/. False positives, CVE-named demo folders, and portability demonstrations are excluded.",
-  "generated": "2026-07-20",
+  "description": "Index of completed triage sessions. Includes confirmed, not-vulnerable, and escalated Keycloak GitHub issues stored under .bob/reports/<attack-class-folder>/<issue-number>/. CVE-named demo folders and portability demonstrations are excluded.",
+  "generated": "2026-07-21",
   "sessions": [
     {
       "issue_number": "50445",
@@ -12,9 +12,11 @@
       "matched_cve_pattern": "CVE-2026-9796",
       "attack_type": "Privilege Escalation via Hardcoded Role Mapper Injection",
       "verdict": "confirmed",
-      "severity": "BLOCKER",
+      "severity": "CRITICAL",
       "novel_pattern": false,
-      "triage_date": "2026-07-20"
+      "triage_date": "2026-07-20",
+      "keycloak_version_tested": "26.1",
+      "stale": null
     },
     {
       "issue_number": "49915",
@@ -25,9 +27,11 @@
       "matched_cve_pattern": "CVE-2026-4874",
       "attack_type": "Blind Server-Side Request Forgery (SSRF)",
       "verdict": "confirmed",
-      "severity": "IMPORTANT",
+      "severity": "HIGH",
       "novel_pattern": false,
-      "triage_date": "2026-07-04"
+      "triage_date": "2026-07-04",
+      "keycloak_version_tested": "26.6.x",
+      "stale": null
     },
     {
       "issue_number": "49570",
@@ -40,7 +44,9 @@
       "verdict": "confirmed",
       "severity": "IMPORTANT",
       "novel_pattern": true,
-      "triage_date": "2026-07-04"
+      "triage_date": "2026-07-04",
+      "keycloak_version_tested": "26.1.5",
+      "stale": null
     },
     {
       "issue_number": "50983",
@@ -49,12 +55,30 @@
       "context_json": ".bob/reports/FGAP-assign-unassign/50983/context.json",
       "assigned_cve": null,
       "matched_cve_pattern": "CVE-2026-11986",
-      "attack_type": "Authorization Bypass — Missing canView() in Admin UI flow summary mapper",
+      "attack_type": "Authorization Bypass \u2014 Missing canView() in Admin UI flow summary mapper",
       "verdict": "confirmed",
       "severity": "MEDIUM",
       "novel_pattern": false,
       "novel_sub_variant": true,
-      "triage_date": "2026-07-20"
+      "triage_date": "2026-07-20",
+      "keycloak_version_tested": "26.2.5",
+      "stale": null
+    },
+    {
+      "issue_number": "50981",
+      "report_folder": "FGAP-assign-unassign",
+      "session_path": ".bob/reports/FGAP-assign-unassign/50981/",
+      "context_json": ".bob/reports/FGAP-assign-unassign/50981/context.json",
+      "assigned_cve": null,
+      "matched_cve_pattern": "CVE-2026-11986",
+      "attack_type": "Authorization Bypass \u2014 Missing per-client visibility filter on user subresource endpoints (sessions/consents/offline-sessions)",
+      "verdict": "confirmed",
+      "severity": "MEDIUM",
+      "novel_pattern": false,
+      "novel_sub_variant": true,
+      "triage_date": "2026-07-21",
+      "keycloak_version_tested": "latest",
+      "stale": null
     }
   ]
 }

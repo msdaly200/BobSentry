@@ -446,21 +446,67 @@ Always include at minimum:
 
 ### 4.15 Phase 4 — Session Metrics
 
-`Type: table` *(executed sessions; optional for others)*
+`Type: table` — **Required for `executed` sessions; optional for others.**
+
+This section serves two purposes:
+
+1. It is the **per-issue record** inside the triage report itself.
+2. It is the **source data** for the running totals in
+   [`.bob/reports/metrics-summary.md`](../reports/metrics-summary.md).
+   After writing the triage report, Bob-Sentry MUST update `metrics-summary.md`
+   with this session's row. If the same issue was triaged before, the previous row
+   MUST be replaced with the latest session's data (re-triages supersede).
+
+**Required fields:**
 
 ```markdown
+## Phase 4 — Session Metrics
+
 | Metric | Value |
 |--------|-------|
 | Triage date | {{YYYY-MM-DD}} |
 | Keycloak version tested | {{VERSION}} |
+| Attack class | {{e.g., AuthZ Bypass — FGAP (Class 10)}} |
+| CVE / matched pattern | {{CVE_ID_OR_NONE}} / {{MATCHED_CVE_PATTERN}} |
 | Sandbox start | Keycloak ready on attempt {{N}} |
 | Script A exit | {{CODE}} ({{meaning}}) |
 | Script B exit | {{CODE}} ({{meaning}}) |
+| Bob-Sentry elapsed time | ~{{N}} minutes |
+| Script iterations | {{N}} (Script A: {{a}}, Script B: {{b}}) |
 | Primary evidence | {{e.g., HTTP 201 on mapper POST / Docker log line}} |
+| Estimated manual triage time | ~{{N}} hours |
+| Estimated time saved | ~{{N}} hours |
+| Token cost | est. {{RANGE}} tokens |
 | Secret scan | PASS / FAIL |
 | Container cleanup | completed / pending |
-| Estimated manual triage time saved | ~{{N}} hours |
 ```
+
+**Field guidance:**
+
+| Field | How to populate |
+|-------|----------------|
+| `Bob-Sentry elapsed time` | Wall-clock minutes from first guardrails read to report written. If not tracked precisely, use ~15 min for a standard 2-script session, ~27 min for a first-run session with multiple iterations. |
+| `Script iterations` | Total number of script revisions across both scripts (Script A + Script B runs, including retries). |
+| `Estimated manual triage time` | Time a senior engineer unfamiliar with the code path would need to replicate the triage manually. Use ~3 hrs as the default for a complex authorization flaw; ~1.5 hrs for SSRF / dependency CVE; ~4 hrs for novel patterns. |
+| `Estimated time saved` | `manual estimate − Bob-Sentry elapsed time (converted to hours)`. |
+| `Token cost` | Use `est. 80k–120k` for simple sessions; `est. 100k–150k` for standard sessions; `est. 150k–300k` for first-run or multi-iteration sessions. |
+| `Attack class` | Matches the Attack Class column in `metrics-summary.md`. Use the short form from the Attack Class Distribution table. |
+
+**Dual-write rule:** The `metrics-summary.md` Per-Session Log row for this issue MUST
+contain the same values as this table. The mapping is:
+
+| `metrics-summary.md` column | Source field in this table |
+|-----------------------------|---------------------------|
+| Date | Triage date |
+| Attack Class | Attack class |
+| CVE | CVE / matched pattern (CVE ID only) |
+| Severity | From §4.11 Severity Assessment |
+| Status | From Verdict (front-matter) |
+| Elapsed (min) | Bob-Sentry elapsed time |
+| Script Iters | Script iterations (total) |
+| Manual Est. (hrs) | Estimated manual triage time |
+| Time Saved (hrs) | Estimated time saved |
+| Tokens | Token cost |
 
 ---
 
@@ -483,7 +529,7 @@ It MUST conform to the schema defined in
   "affected_component": "{{COMPONENT}}",
   "keycloak_version_tested": "{{VERSION}}",
   "suggested_fix_area": "{{FILE.java — method() — one line description}}",
-  "severity": "BLOCKER | IMPORTANT | MEDIUM | LOW",
+  "severity": "LOW | MEDIUM | HIGH | CRITICAL",
   "cvss_base_score": {{SCORE}},
   "cvss_vector": "CVSS:3.1/...",
   "escalated": false | true,
@@ -574,8 +620,9 @@ These elements must be **identical** across all reports regardless of issue type
 4. The section order (§3 table)
 5. The guardrails table structure with all 8 rules (§4.2)
 6. The pattern match results code block listing all registered CVE patterns (§4.4.2)
-7. The verdict JSON schema (§4.16)
-8. The footer wording (§4.17)
+7. The Session Metrics field names (§4.15) — all 14 fields must be present in every executed session report
+8. The verdict JSON schema (§4.16)
+9. The footer wording (§4.17)
 
 ---
 
@@ -592,8 +639,11 @@ When generating a report, Bob-Sentry modes MUST:
 The report is **not complete** until:
 - All `●` sections for the session type are present with real content
 - The front-matter block is fully populated
+- The Session Metrics table is present with all 14 fields populated (for `executed` sessions)
 - The Verdict JSON is present and machine-parseable
 - The footer is present
+- `.bob/reports/metrics-summary.md` has been updated with this session's row (see §4.15
+  dual-write rule) — the report file and metrics-summary MUST be consistent
 
 ---
 

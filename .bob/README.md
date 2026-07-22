@@ -1,6 +1,23 @@
 # Bob-Sentry — Security Triage System
 
-Bob-Sentry is a semi-autonomous security triage pipeline for Keycloak. It converts a raw GitHub issue number into a structured vulnerability verdict (confirmed / patch verified / escalated) with reproducible scripts, a sandbox execution log, a final severity assessment, and a Markdown report — all without touching GitHub.
+Bob-Sentry is a semi-autonomous security triage pipeline for any API-driven client/server application. It converts a raw GitHub issue number into a structured vulnerability verdict (confirmed / patch verified / escalated) with reproducible scripts, a sandbox execution log, a final severity assessment, and a Markdown report — all without touching GitHub.
+
+---
+
+## 0. Prerequisites
+
+You need four things installed and working before running a triage:
+
+| Tool | Why | Check |
+|------|-----|-------|
+| [IBM Bob](https://github.com/ibm/bob) | Runs the pipeline | Open this repo in Bob |
+| Docker **or** [Podman](https://podman.io) | Sandbox container | `docker --version` or `podman --version` |
+| [GitHub CLI](https://cli.github.com) | Reads issue content | `gh auth status` |
+| Python 3.9+ | Triage scripts | `python3 --version` |
+
+> **Mac users:** Podman is a Docker-compatible alternative. Install with `brew install podman` then `podman machine init && podman machine start`. The pipeline uses standard `docker compose` commands — if you're using Podman, run `brew install podman-compose` or alias `docker` to `podman`.
+
+That's it. No configuration files to edit, no environment variables to set.
 
 ---
 
@@ -11,11 +28,11 @@ Bob-Sentry is a semi-autonomous security triage pipeline for Keycloak. It conver
 **Then run the slash command:**
 
 ```
-/triage <github-issue-number>
-/triage <github-issue-number> searchDup
+/triage <github-repo-url-and-issue-number>
+/triage <github-repo-url-and-issue-numbe> --skip-dups
 ```
 
-**`searchDup` (optional):** Before any analysis begins, Bob searches `keycloak/keycloak` for existing open and closed issues that match the same vulnerability. If candidate duplicates (score ≥ 3) are found, the pipeline **halts and reports them** — it will not consume triage resources on a known issue. Re-run without `searchDup` to proceed once you've confirmed it is not a duplicate.
+**`--skip-dups` (optional):** Before any analysis begins, Bob searches the specified github repository for existing open and closed issues that match the same vulnerability. If candidate duplicates (score ≥ 3) are found, the pipeline **halts and reports them** — it will not consume triage resources on a known issue. Re-run with `--skip-dups` to proceed once you've confirmed it is not a duplicate.
 
 ---
 
@@ -32,7 +49,7 @@ The command triggers a 6-step pipeline. Steps 3 and 4 are iterative — scripts 
 | 5 | Agent | Spins up a Docker sandbox, runs the scripts, captures logs, assigns the final CVSS v3.1 severity, tears everything down, writes the Markdown report |
 | 6 | Agent | Runs a retrospective, proposes targeted updates to the knowledge-base files; **waits for your approval** before touching anything |
 
-**Sandbox lifecycle:** A Docker Compose file is written to `/tmp/keycloak-triage/`, Keycloak boots (60-second timeout), both scripts run, and `docker compose down -v` plus `rm -rf /tmp/keycloak-triage/` execute unconditionally — even on failure. No container state persists between sessions.
+**Sandbox lifecycle:** A Docker Compose file is written to e.g. `/tmp/<keycloak>-triage/`, Keycloak boots (60-second timeout), both scripts run, and `docker compose down -v` plus `rm -rf /tmp/keycloak-triage/` execute unconditionally — even on failure. No container state persists between sessions.
 
 ---
 
@@ -47,10 +64,12 @@ All artefacts land under `.bob/reports/`, organised by attack class and issue nu
       setup_realm.py            ← Script A: provisions the sandbox realm
       exploit_test.py           ← Script B: executes the exploit and asserts the result
       triage-<number>-<date>.md ← the full triage report
+      context.json              ← context about the issue for any agents triaging new issues
   metrics-summary.md            ← running productivity totals across all sessions
+  index.json                    ← context on all triaged issues for quick search by agents looking for matches
 ```
 
-**Attack-class folder names** (set by the CVE Analyzer):
+**Attack-class folder names** (set by the CVE Analyzer), for example:
 
 | Folder | Vulnerability class |
 |--------|---------------------|
@@ -61,7 +80,7 @@ All artefacts land under `.bob/reports/`, organised by attack class and issue nu
 | `policy-bypass-ROPC/` | Client policy bypass via ROPC grant |
 | `novel-pattern/` | Vulnerabilities that don't match a known class |
 
-The triage report includes: executive summary, threat profile, sandbox config, full execution logs, HTTP evidence, final severity label, CVSS v3.1 base score, CVSS v3.1 vector, verdict JSON, a suggested investigation area in the Keycloak source tree, and a session-metrics table.
+The triage report includes: executive summary, threat profile, sandbox config, full execution logs, HTTP evidence, final severity label, CVSS v3.1 base score, CVSS v3.1 vector, verdict JSON, a suggested investigation area in the products source tree, and a session-metrics table.
 
 ---
 
